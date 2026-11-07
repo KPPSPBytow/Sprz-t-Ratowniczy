@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ewidencja Sprzętu Ratowniczego - OSP / PSP</title>
+    
+    <!-- Blokowanie indeksowania przez wyszukiwarki (Google itp.) -->
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- React, ReactDOM, Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; color: black; }
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // Przykładowe dane początkowe sprzętu
+        const initialEquipment = [
+            {
+                id: 1,
+                name: "Łódź płaskodawna z silnikiem Honda 50KM",
+                category: "Wodne",
+                inventoryNo: "EQUIP-WOD-001",
+                location: "Garaż / Przyczepa P1",
+                status: "Sprawny",
+                expiryDate: "2026-11-20",
+                lastInspector: "Michał",
+                notes: "Przegląd techniczny silnika wygasa niebawem.",
+                quantity: 1
+            },
+            {
+                id: 2,
+                name: "Kamizelka asekuracyjna KWP 80N (Komp. 4 szt.)",
+                category: "Wodne",
+                inventoryNo: "EQUIP-WOD-002",
+                location: "Łódź P1",
+                status: "Sprawny",
+                expiryDate: "2028-05-10",
+                lastInspector: "Michał",
+                notes: "Stan idealny, atesty aktualne.",
+                quantity: 4
+            },
+            {
+                id: 3,
+                name: "Kombinezon suchy wypornościowy Titan",
+                category: "Wodne",
+                inventoryNo: "EQUIP-WOD-003",
+                location: "Magazyn Wodny - Szafa 2",
+                status: "W naprawie",
+                expiryDate: "2027-01-15",
+                lastInspector: "Michał",
+                notes: "Uszkodzony manszet w rękawie prawym. Oddane do serwisu.",
+                quantity: 2
+            },
+            {
+                id: 4,
+                name: "Torba Ratownicza R1 ze stelażem",
+                category: "Medyczne",
+                inventoryNo: "EQUIP-MED-001",
+                location: "Wóz GBA 2,5/16 - Skrytka 3",
+                status: "Sprawny",
+                expiryDate: "2026-11-15",
+                lastInspector: "Filip",
+                notes: "Kończy się ważność niektórych opatrunków oraz zestawu płynów.",
+                quantity: 1
+            },
+            {
+                id: 5,
+                name: "Butla tlenowa 10L z reduktorem",
+                category: "Medyczne",
+                inventoryNo: "EQUIP-MED-002",
+                location: "Wóz GBA 2,5/16 - Torba R1",
+                status: "Sprawny",
+                expiryDate: "2026-12-01",
+                lastInspector: "Filip",
+                notes: "Legalizacja butli ważna do końca roku. Ciśnienie 200 bar.",
+                quantity: 1
+            },
+            {
+                id: 6,
+                name: "Defibrylator AED ZOLL Plus",
+                category: "Medyczne",
+                inventoryNo: "EQUIP-MED-003",
+                location: "Wóz GBA 2,5/16 - Kabina",
+                status: "Sprawny",
+                expiryDate: "2027-08-30",
+                lastInspector: "Filip",
+                notes: "Elektrody i baterie wymienione w zeszłym miesiącu.",
+                quantity: 1
+            },
+            {
+                id: 7,
+                name: "Rzutka rękawowa 25m",
+                category: "Wodne",
+                inventoryNo: "EQUIP-WOD-004",
+                location: "Łódź P1",
+                status: "Sprawny",
+                expiryDate: "2029-01-01",
+                lastInspector: "Michał",
+                notes: "Lina sprawdzona.",
+                quantity: 2
+            }
+        ];
+
+        function App() {
+            // Użytkownicy: Filip (Medyk), Michał (Wodny), Guest (Tylko Odczyt)
+            const [currentUser, setCurrentUser] = useState(() => {
+                return localStorage.getItem('rescue_user') || null;
+            });
+
+            const [equipment, setEquipment] = useState(() => {
+                const saved = localStorage.getItem('rescue_equipment');
+                return saved ? JSON.parse(saved) : initialEquipment;
+            });
+
+            const [discordWebhook, setDiscordWebhook] = useState(() => {
+                return localStorage.getItem('rescue_discord_webhook') || "";
+            });
+
+            const [activeTab, setActiveTab] = useState('All');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [statusFilter, setStatusFilter] = useState('All');
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [isDiscordModalOpen, setIsDiscordModalOpen] = useState(false);
+            const [editingItem, setEditingItem] = useState(null);
+            const [discordStatus, setDiscordStatus] = useState({ loading: false, msg: '' });
+
+            const [formData, setFormData] = useState({
+                name: '',
+                category: 'Wodne',
+                inventoryNo: '',
+                location: '',
+                status: 'Sprawny',
+                expiryDate: '',
+                notes: '',
+                quantity: 1
+            });
+
+            useEffect(() => {
+                localStorage.setItem('rescue_equipment', JSON.stringify(equipment));
+            }, [equipment]);
+
+            useEffect(() => {
+                if (currentUser) {
+                    localStorage.setItem('rescue_user', currentUser);
+                } else {
+                    localStorage.removeItem('rescue_user');
+                }
+            }, [currentUser]);
+
+            useEffect(() => {
+                localStorage.setItem('rescue_discord_webhook', discordWebhook);
+            }, [discordWebhook]);
+
+            useEffect(() => {
+                if (currentUser === 'Filip') {
+                    setActiveTab('Medyczne');
+                } else if (currentUser === 'Michał') {
+                    setActiveTab('Wodne');
+                }
+            }, [currentUser]);
+
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            });
+
+            useEffect(() => {
+                if (!discordWebhook || currentUser === 'Guest') return;
+                
+                const lastCheck = localStorage.getItem('rescue_last_discord_check');
+                const today = new Date().toISOString().split('T')[0];
+                
+                if (lastCheck !== today) {
+                    const expiringItems = getExpiringItems(30);
+                    if (expiringItems.length > 0) {
+                        sendDiscordNotification(expiringItems, true);
+                        localStorage.setItem('rescue_last_discord_check', today);
+                    }
+                }
+            }, [equipment, discordWebhook, currentUser]);
+
+            const getDaysToExpiry = (dateString) => {
+                if (!dateString) return null;
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const exp = new Date(dateString);
+                exp.setHours(0,0,0,0);
+                const diffTime = exp - today;
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            };
+
+            const getExpiringItems = (daysThreshold = 30) => {
+                return equipment.filter(item => {
+                    const days = getDaysToExpiry(item.expiryDate);
+                    return days !== null && days <= daysThreshold;
+                });
+            };
+
+            const sendDiscordNotification = async (itemsToSend = null, isAuto = false) => {
+                if (!discordWebhook) {
+                    setDiscordStatus({ loading: false, msg: 'Ustaw najpierw link Webhooka w zakładce Discord!' });
+                    setIsDiscordModalOpen(true);
+                    return;
+                }
+
+                const items = itemsToSend || getExpiringItems(30);
+                
+                if (items.length === 0) {
+                    setDiscordStatus({ loading: false, msg: 'Brak sprzętu wymagającego uwagi (wszystko aktualne).' });
+                    return;
+                }
+
+                setDiscordStatus({ loading: true, msg: 'Wysyłanie alertu na Discord...' });
+
+                const fields = items.map(item => {
+                    const days = getDaysToExpiry(item.expiryDate);
+                    const daysText = days < 0 ? `⚠️ WYGASŁO (${Math.abs(days)} dni temu)` : `⏱️ Zostało: ${days} dni`;
+                    const mentor = item.category === 'Wodne' ? 'Michał (@Michał)' : 'Filip (@Filip)';
+                    return {
+                        name: `${item.category === 'Wodne' ? '🚤' : '💊'} ${item.name} (${item.inventoryNo})`,
+                        value: `• **Lokalizacja:** ${item.location}\n• **Data ważności:** ${item.expiryDate} (${daysText})\n• **Opiekun:** ${mentor}\n• **Stan:** ${item.status}`,
+                        inline: false
+                    };
+                });
+
+                const payload = {
+                    username: "System Nadzoru Sprzętu OSP",
+                    avatar_url: "https://cdn-icons-png.flaticon.com/512/1023/1023656.png",
+                    content: isAuto 
+                        ? "🔔 **Automatyczny alert dzienny – Sprzęt z wygasającym terminem ważności!**" 
+                        : `📢 **Raport wygenerowany przez: ${currentUser}**`,
+                    embeds: [{
+                        title: "🚨 Alert Sprzętowy (Ważność ≤ 30 dni)",
+                        description: `Wykryto **${items.length}** pozycji sprzętowych wymagających przeglądu, legalizacji lub wymiany:`,
+                        color: 15158332,
+                        fields: fields,
+                        footer: {
+                            text: `Jednostka OSP/PSP • Raport z dnia ${new Date().toLocaleDateString('pl-PL')}`
+                        }
+                    }]
+                };
+
+                try {
+                    const response = await fetch(discordWebhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        setDiscordStatus({ loading: false, msg: '✅ Powiadomienie zostało wysłane na Discorda!' });
+                    } else {
+                        setDiscordStatus({ loading: false, msg: '❌ Błąd wysyłania (sprawdź poprawność URL Webhooka).' });
+                    }
+                } catch (err) {
+                    setDiscordStatus({ loading: false, msg: '❌ Błąd połączenia z serwerem Discord.' });
+                }
+            };
+
+            const filteredEquipment = useMemo(() => {
+                return equipment.filter(item => {
+                    const matchesCategory = activeTab === 'All' || item.category === activeTab;
+                    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                          item.inventoryNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                          item.location.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
+                    return matchesCategory && matchesSearch && matchesStatus;
+                });
+            }, [equipment, activeTab, searchTerm, statusFilter]);
+
+            const stats = useMemo(() => {
+                const total = equipment.length;
+                const wodne = equipment.filter(i => i.category === 'Wodne').length;
+                const medyczne = equipment.filter(i => i.category === 'Medyczne').length;
+                const expiringSoon = equipment.filter(i => {
+                    const days = getDaysToExpiry(i.expiryDate);
+                    return days !== null && days <= 30;
+                }).length;
+                const damaged = equipment.filter(i => i.status !== 'Sprawny').length;
+
+                return { total, wodne, medyczne, expiringSoon, damaged };
+            }, [equipment]);
+
+            const handleSaveItem = (e) => {
+                e.preventDefault();
+                if (currentUser === 'Guest') return;
+
+                if (editingItem) {
+                    setEquipment(equipment.map(item => 
+                        item.id === editingItem.id ? { 
+                            ...formData, 
+                            id: editingItem.id, 
+                            lastInspector: currentUser 
+                        } : item
+                    ));
+                } else {
+                    const newItem = {
+                        ...formData,
+                        id: Date.now(),
+                        lastInspector: currentUser
+                    };
+                    setEquipment([newItem, ...equipment]);
+                }
+                closeModal();
+            };
+
+            const handleEdit = (item) => {
+                if (currentUser === 'Guest') return;
+                setEditingItem(item);
+                setFormData(item);
+                setIsModalOpen(true);
+            };
+
+            const handleDelete = (id) => {
+                if (currentUser === 'Guest') return;
+                if (confirm("Czy na pewno chcesz usunąć ten sprzęt z ewidencji?")) {
+                    setEquipment(equipment.filter(item => item.id !== id));
+                }
+            };
+
+            const openNewModal = () => {
+                if (currentUser === 'Guest') return;
+                setEditingItem(null);
+                setFormData({
+                    name: '',
+                    category: currentUser === 'Filip' ? 'Medyczne' : 'Wodne',
+                    inventoryNo: `EQUIP-${Date.now().toString().slice(-4)}`,
+                    location: '',
+                    status: 'Sprawny',
+                    expiryDate: '',
+                    notes: '',
+                    quantity: 1
+                });
+                setIsModalOpen(true);
+            };
+
+            const closeModal = () => {
+                setIsModalOpen(false);
+                setEditingItem(null);
+            };
+
+            const exportToCSV = () => {
+                const headers = ["ID", "Nazwa", "Kategoria", "Nr Inwentarzowy", "Lokalizacja", "Stan", "Data Ważności", "Opiekun/Ostatnia edycja", "Ilość", "Uwagi"];
+                const rows = filteredEquipment.map(i => [
+                    i.id,
+                    `"${i.name}"`,
+                    i.category,
+                    i.inventoryNo,
+                    `"${i.location}"`,
+                    i.status,
+                    i.expiryDate,
+                    i.lastInspector || '',
+                    i.quantity,
+                    `"${i.notes || ''}"`
+                ]);
+                const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `Ewidencja_Sprzetu_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            if (!currentUser) {
+                return (
+                    <div class="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full shadow-2xl text-center">
+                            <div class="inline-flex items-center justify-center p-4 bg-red-600/10 text-red-500 rounded-2xl mb-6">
+                                <i data-lucide="shield-alert" class="w-12 h-12"></i>
+                            </div>
+                            <h1 class="text-2xl font-bold text-white mb-2">Ewidencja Sprzętu Ratowniczego</h1>
+                            <p class="text-slate-400 mb-8 text-sm">Wybierz swój profil, aby przejść do systemu zarządzania</p>
+                            
+                            <div class="space-y-4">
+                                <button 
+                                    onClick={() => setCurrentUser('Filip')}
+                                    class="w-full flex items-center justify-between p-4 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left"
+                                >
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">
+                                            F
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-white group-hover:text-emerald-400 transition">Filip</div>
+                                            <div class="text-xs text-slate-400">Nadzorca Ratownictwa Medycznego (R1)</div>
+                                        </div>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-5 h-5 text-slate-500 group-hover:text-emerald-400 transition"></i>
+                                </button>
+
+                                <button 
+                                    onClick={() => setCurrentUser('Michał')}
+                                    class="w-full flex items-center justify-between p-4 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left"
+                                >
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">
+                                            M
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-white group-hover:text-cyan-400 transition">Michał</div>
+                                            <div class="text-xs text-slate-400">Nadzorca Ratownictwa Wodnego</div>
+                                        </div>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-5 h-5 text-slate-500 group-hover:text-cyan-400 transition"></i>
+                                </button>
+
+                                <button 
+                                    onClick={() => setCurrentUser('Guest')}
+                                    class="w-full flex items-center justify-between p-4 bg-slate-800/40 hover:bg-slate-800 border border-slate-800 rounded-xl transition group text-left"
+                                >
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">
+                                            G
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-slate-300 group-hover:text-white transition">Gość / Obserwator</div>
+                                            <div class="text-xs text-amber-500/80">Podgląd bez możliwości edycji</div>
+                                        </div>
+                                    </div>
+                                    <i data-lucide="eye" class="w-5 h-5 text-slate-500 group-hover:text-amber-400 transition"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            const isGuest = currentUser === 'Guest';
+
+            return (
+                <div class="pb-12">
+                    {isGuest && (
+                        <div class="bg-amber-500/10 border-b border-amber-500/20 text-amber-300 px-4 py-2 text-center text-sm font-medium flex items-center justify-center space-x-2 no-print">
+                            <i data-lucide="lock" class="w-4 h-4"></i>
+                            <span>Tryb podglądu (Tylko odczyt) – Zalogowano jako Gość. Edycja i wprowadzanie zmian są zablokowane.</span>
+                        </div>
+                    )}
+
+                    <header class="bg-slate-950 border-b border-slate-800 sticky top-0 z-30 no-print">
+                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-red-600 p-2.5 rounded-xl text-white shadow-lg shadow-red-600/30">
+                                    <i data-lucide="shield-alert" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <h1 class="text-xl font-bold text-white tracking-wide">SYSTEM REJESTRU SPRZĘTU RATOWNICZEGO</h1>
+                                    <p class="text-xs text-slate-400">Jednostka OSP / PSP • Moduł Wodny i Medyczny</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center space-x-3">
+                                <div class="flex items-center bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-sm">
+                                    <span class="text-slate-400 text-xs mr-2">Zalogowany:</span>
+                                    <span class={`font-semibold ${currentUser === 'Filip' ? 'text-emerald-400' : currentUser === 'Michał' ? 'text-cyan-400' : 'text-amber-400'}`}>
+                                        {currentUser} {isGuest && '(Obserwator)'}
+                                    </span>
+                                </div>
+
+                                <button 
+                                    onClick={() => setIsDiscordModalOpen(true)}
+                                    class="p-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 rounded-xl text-sm transition flex items-center space-x-2"
+                                    title="Ustawienia Discord Webhook"
+                                >
+                                    <i data-lucide="bell" class="w-4 h-4"></i>
+                                    <span class="hidden sm:inline">Discord</span>
+                                </button>
+
+                                <button 
+                                    onClick={() => setCurrentUser(null)}
+                                    class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition flex items-center space-x-1"
+                                    title="Zmień użytkownika / Wyloguj"
+                                >
+                                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 no-print">
+                            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
+                                <div class="text-xs font-medium text-slate-400 mb-1">Cały Sprzęt</div>
+                                <div class="text-2xl font-bold text-white">{stats.total}</div>
+                            </div>
+                            <div 
+                                onClick={() => setActiveTab('Wodne')}
+                                class={`cursor-pointer border rounded-xl p-4 transition ${activeTab === 'Wodne' ? 'bg-cyan-950/40 border-cyan-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}
+                            >
+                                <div class="text-xs font-medium text-cyan-400 mb-1 flex items-center justify-between">
+                                    <span>Rat. Wodne</span>
+                                    <i data-lucide="waves" class="w-4 h-4"></i>
+                                </div>
+                                <div class="text-2xl font-bold text-cyan-200">{stats.wodne}</div>
+                                <div class="text-[10px] text-slate-400 mt-1">Opiekun: Michał</div>
+                            </div>
+                            <div 
+                                onClick={() => setActiveTab('Medyczne')}
+                                class={`cursor-pointer border rounded-xl p-4 transition ${activeTab === 'Medyczne' ? 'bg-emerald-950/40 border-emerald-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}
+                            >
+                                <div class="text-xs font-medium text-emerald-400 mb-1 flex items-center justify-between">
+                                    <span>Rat. Medyczne (R1)</span>
+                                    <i data-lucide="cross" class="w-4 h-4"></i>
+                                </div>
+                                <div class="text-2xl font-bold text-emerald-200">{stats.medyczne}</div>
+                                <div class="text-[10px] text-slate-400 mt-1">Opiekun: Filip</div>
+                            </div>
+                            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
+                                <div class="text-xs font-medium text-amber-400 mb-1 flex items-center justify-between">
+                                    <span>Wygasa (≤ 30 dni)</span>
+                                    <i data-lucide="clock" class="w-4 h-4"></i>
+                                </div>
+                                <div class="text-2xl font-bold text-amber-300">{stats.expiringSoon}</div>
+                            </div>
+                            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
+                                <div class="text-xs font-medium text-red-400 mb-1 flex items-center justify-between">
+                                    <span>W naprawie / Brak</span>
+                                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                                </div>
+                                <div class="text-2xl font-bold text-red-300">{stats.damaged}</div>
+                            </div>
+                        </div>
+
+                        {stats.expiringSoon > 0 && (
+                            <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 no-print">
+                                <div class="flex items-center space-x-3">
+                                    <div class="p-2 bg-amber-500/20 text-amber-400 rounded-lg">
+                                        <i data-lucide="bell-ring" class="w-6 h-6"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-amber-200">Uwaga! Wykryto sprzęt wymagający przeglądu/wymiany</div>
+                                        <div class="text-xs text-amber-400/80">Liczba pozycji z terminem ≤ 30 dni: {stats.expiringSoon} szt.</div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => sendDiscordNotification()}
+                                    disabled={discordStatus.loading}
+                                    class="w-full md:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition flex items-center justify-center space-x-2 shadow-lg shadow-indigo-600/30 disabled:opacity-50"
+                                >
+                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                    <span>{discordStatus.loading ? 'Wysyłanie...' : 'Wyślij alert na Discord'}</span>
+                                </button>
+                            </div>
+                        )}
+
+                        {discordStatus.msg && (
+                            <div class="p-3 bg-slate-800 border border-slate-700 text-slate-200 rounded-xl text-sm flex items-center justify-between no-print">
+                                <span>{discordStatus.msg}</span>
+                                <button onClick={() => setDiscordStatus({ loading: false, msg: '' })} class="text-slate-400 hover:text-white">✕</button>
+                            </div>
+                        )}
+
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+                            <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start">
+                                <button 
+                                    onClick={() => setActiveTab('All')}
+                                    class={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'All' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    Wszystko
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('Wodne')}
+                                    class={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'Wodne' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <i data-lucide="waves" class="w-4 h-4"></i>
+                                    <span>Ratownictwo Wodne (Michał)</span>
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('Medyczne')}
+                                    class={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'Medyczne' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <i data-lucide="cross" class="w-4 h-4"></i>
+                                    <span>Ratownictwo Medyczne (Filip)</span>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center space-x-2">
+                                {!isGuest && (
+                                    <button 
+                                        onClick={openNewModal}
+                                        class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition flex items-center space-x-2 shadow-lg shadow-red-600/30"
+                                    >
+                                        <i data-lucide="plus" class="w-4 h-4"></i>
+                                        <span>Dodaj sprzęt</span>
+                                    </button>
+                                )}
+                                
+                                <button 
+                                    onClick={exportToCSV}
+                                    class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm transition"
+                                    title="Eksportuj do pliku CSV"
+                                >
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                </button>
+                                
+                                <button 
+                                    onClick={() => window.print()}
+                                    class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm transition"
+                                    title="Drukuj / Zapisz jako PDF"
+                                >
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 no-print">
+                            <div class="relative md:col-span-2">
+                                <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500"></i>
+                                <input 
+                                    type="text"
+                                    placeholder="Szukaj po nazwie, numerze inwentarzowym lub lokalizacji..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500"
+                                />
+                            </div>
+                            
+                            <div>
+                                <select 
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    class="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500"
+                                >
+                                    <option value="All">Wszystkie stany techniczne</option>
+                                    <option value="Sprawny">Sprawny</option>
+                                    <option value="W naprawie">W naprawie / Serwis</option>
+                                    <option value="Wybrakiwany">Wybrakiwany / Wycofany</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                            <div class="print-only p-6 border-b border-slate-300">
+                                <h1 class="text-2xl font-bold text-black">PROTOKÓŁ KONTROLI I EWIDENCJI SPRZĘTU RATOWNICZEGO</h1>
+                                <p class="text-sm text-gray-600">Dział: {activeTab === 'All' ? 'Wszystkie Działy' : activeTab} • Data generowania: {new Date().toLocaleDateString('pl-PL')}</p>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-950/60 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                            <th class="p-4">Sprzęt & Nr Inwentarzowy</th>
+                                            <th class="p-4">Dział</th>
+                                            <th class="p-4">Lokalizacja</th>
+                                            <th class="p-4">Stan</th>
+                                            <th class="p-4">Ważność / Przegląd</th>
+                                            <th class="p-4">Opiekun</th>
+                                            <th class="p-4 text-center">Ilość</th>
+                                            {!isGuest && <th class="p-4 text-right no-print">Akcje</th>}
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-800/60 text-sm">
+                                        {filteredEquipment.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={isGuest ? 7 : 8} class="p-8 text-center text-slate-500">
+                                                    Brak sprzętu spełniającego wybrane kryteria.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            filteredEquipment.map(item => {
+                                                const daysToExp = getDaysToExpiry(item.expiryDate);
+                                                let expBadgeClass = "bg-slate-800 text-slate-300";
+                                                
+                                                if (daysToExp !== null) {
+                                                    if (daysToExp <= 0) {
+                                                        expBadgeClass = "bg-red-500/20 text-red-400 border border-red-500/30";
+                                                    } else if (daysToExp <= 30) {
+                                                        expBadgeClass = "bg-amber-500/20 text-amber-300 border border-amber-500/30";
+                                                    } else {
+                                                        expBadgeClass = "bg-emerald-500/10 text-emerald-400";
+                                                    }
+                                                }
+
+                                                return (
+                                                    <tr key={item.id} class="hover:bg-slate-800/40 transition">
+                                                        <td class="p-4">
+                                                            <div class="font-semibold text-white">{item.name}</div>
+                                                            <div class="text-xs text-slate-400 font-mono mt-0.5">{item.inventoryNo}</div>
+                                                            {item.notes && <div class="text-xs text-slate-500 italic mt-1">{item.notes}</div>}
+                                                        </td>
+                                                        <td class="p-4">
+                                                            <span class={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+                                                                item.category === 'Wodne' 
+                                                                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
+                                                                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                                            }`}>
+                                                                {item.category === 'Wodne' ? '🌊 Wodne' : '🚑 Medyczne'}
+                                                            </span>
+                                                        </td>
+                                                        <td class="p-4 text-slate-300">
+                                                            <div class="flex items-center space-x-1.5">
+                                                                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-500"></i>
+                                                                <span>{item.location}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td class="p-4">
+                                                            <span class={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                                                item.status === 'Sprawny' ? 'bg-emerald-500/10 text-emerald-400' :
+                                                                item.status === 'W naprawie' ? 'bg-amber-500/10 text-amber-400' :
+                                                                'bg-red-500/10 text-red-400'
+                                                            }`}>
+                                                                {item.status}
+                                                            </span>
+                                                        </td>
+                                                        <td class="p-4">
+                                                            <div class="flex flex-col">
+                                                                <span class="text-xs font-mono">{item.expiryDate || 'Brak daty'}</span>
+                                                                {daysToExp !== null && (
+                                                                    <span class={`text-[10px] px-1.5 py-0.5 rounded mt-1 self-start font-medium ${expBadgeClass}`}>
+                                                                        {daysToExp < 0 ? `Wygasło ${Math.abs(daysToExp)} dni temu` : `Pozostało ${daysToExp} dni`}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td class="p-4 text-xs text-slate-400">
+                                                            <span class="font-medium text-slate-300">{item.lastInspector || '-'}</span>
+                                                        </td>
+                                                        <td class="p-4 text-center font-semibold text-slate-200">
+                                                            {item.quantity}
+                                                        </td>
+                                                        {!isGuest && (
+                                                            <td class="p-4 text-right space-x-2 no-print">
+                                                                <button 
+                                                                    onClick={() => handleEdit(item)}
+                                                                    class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
+                                                                    title="Edytuj"
+                                                                >
+                                                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleDelete(item.id)}
+                                                                    class="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition"
+                                                                    title="Usuń"
+                                                                >
+                                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                                </button>
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </main>
+
+                    {isModalOpen && !isGuest && (
+                        <div class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                                    <h3 class="text-lg font-bold text-white">
+                                        {editingItem ? 'Edycja Przedmiotu' : 'Dodaj Nowy Sprzęt do Ewidencji'}
+                                    </h3>
+                                    <button onClick={closeModal} class="text-slate-400 hover:text-white">✕</button>
+                                </div>
+
+                                <form onSubmit={handleSaveItem} class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Nazwa sprzętu</label>
+                                        <input 
+                                            type="text" 
+                                            required
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                            placeholder="np. Torba R1 / Deska Ortopedyczna / Silnik Honda"
+                                            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-slate-500"
+                                        />
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Dział / Kategoria</label>
+                                            <select 
+                                                value={formData.category}
+                                                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                                            >
+                                                <option value="Wodne">Ratownictwo Wodne (Michał)</option>
+                                                <option value="Medyczne">Ratownictwo Medyczne (Filip)</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Nr Inwentarzowy</label>
+                                            <input 
+                                                type="text" 
+                                                required
+                                                value={formData.inventoryNo}
+                                                onChange={(e) => setFormData({...formData, inventoryNo: e.target.value})}
+                                                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Lokalizacja</label>
+                                            <input 
+                                                type="text" 
+                                                required
+                                                value={formData.location}
+                                                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                                                placeholder="np. GBA Skrytka 3 / Łódź P1"
+                                                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Ilość (szt.)</label>
+                                            <input 
+                                                type="number" 
+                                                min="1"
+                                                value={formData.quantity}
+                                                onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 1})}
+                                                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Stan Techniczny</label>
+                                            <select 
+                                                value={formData.status}
+                                                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                                            >
+                                                <option value="Sprawny">Sprawny</option>
+                                                <option value="W naprawie">W naprawie / Serwis</option>
+                                                <option value="Wybrakiwany">Wybrakiwany / Uszkodzony</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Data Ważności / Przeglądu</label>
+                                            <input 
+                                                type="date" 
+                                                value={formData.expiryDate}
+                                                onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
+                                                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Uwagi / Opis serwisu</label>
+                                        <textarea 
+                                            rows="2"
+                                            value={formData.notes}
+                                            onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                                            placeholder="Dodatkowe informacje o stanie sprzętu..."
+                                            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                                        ></textarea>
+                                    </div>
+
+                                    <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
+                                        <button 
+                                            type="button" 
+                                            onClick={closeModal}
+                                            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm"
+                                        >
+                                            Anuluj
+                                        </button>
+                                        <button 
+                                            type="submit"
+                                            class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-600/30"
+                                        >
+                                            Zapisz sprzęt
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {isDiscordModalOpen && (
+                        <div class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                                    <div class="flex items-center space-x-2">
+                                        <i data-lucide="bell" class="w-5 h-5 text-indigo-400"></i>
+                                        <h3 class="text-lg font-bold text-white">Integracja z Discord Webhook</h3>
+                                    </div>
+                                    <button onClick={() => setIsDiscordModalOpen(false)} class="text-slate-400 hover:text-white">✕</button>
+                                </div>
+
+                                <div class="space-y-3 text-sm text-slate-300">
+                                    <p>Wklej adres URL Webhooka z Waszego serwera Discord, aby powiadomienia trafiały na Wasz kanał:</p>
+                                    
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Adres URL Discord Webhook</label>
+                                        <input 
+                                            type="text"
+                                            value={discordWebhook}
+                                            onChange={(e) => setDiscordWebhook(e.target.value)}
+                                            placeholder="https://discord.com/api/webhooks/..."
+                                            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                                        />
+                                    </div>
+
+                                    <div class="bg-indigo-950/40 border border-indigo-500/20 rounded-xl p-3 text-xs text-indigo-300">
+                                        💡 <strong>Bezpieczeństwo:</strong> Wklejony link zapisuje się tylko lokalnie w przeglądarce i nie trafi do publicznego repozytorium GitHub.
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+                                    <button 
+                                        type="button"
+                                        onClick={() => sendDiscordNotification()}
+                                        disabled={discordStatus.loading || !discordWebhook}
+                                        class="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-medium transition disabled:opacity-50"
+                                    >
+                                        Testuj powiadomienie
+                                    </button>
+                                    
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsDiscordModalOpen(false)}
+                                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold"
+                                    >
+                                        Zapisz i Zamknij
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
