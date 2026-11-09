@@ -118,9 +118,9 @@
 
                     if (snapshot.empty) {
                         const defaultUsers = {
-                            "Filip": { password: "569s31", canEdit: true },
-                            "Michał": { password: "569s31", canEdit: true },
-                            "Jakub": { password: "569s31", canEdit: true }
+                            "Filip": { password: "569s31", permissions: { add: true, edit: true, delete: true } },
+                            "Michał": { password: "569s31", permissions: { add: true, edit: true, delete: true } },
+                            "Jakub": { password: "569s31", permissions: { add: true, edit: true, delete: true } }
                         };
                         for (const [username, data] of Object.entries(defaultUsers)) {
                             await db.collection("users").doc(username).set(data);
@@ -192,7 +192,6 @@
                 setPinInput('');
             };
 
-            // Wysyłanie jednorazowego kodu PIN na Discorda
             const handleInitiateReset = async () => {
                 if (!discordWebhook) {
                     setLoginError('Brak skonfigurowanego Webhooka Discorda! Skontaktuj się z administratorem.');
@@ -254,7 +253,11 @@
                 }
 
                 try {
-                    await db.collection("users").doc(trimmedName).set({ password: "569s31", canEdit: false });
+                    // Domyślnie nowe konto ma wyłączone wszystkie uprawnienia do modyfikacji (tylko odczyt)
+                    await db.collection("users").doc(trimmedName).set({ 
+                        password: "569s31", 
+                        permissions: { add: false, edit: false, delete: false } 
+                    });
                     setSelectedUserForLogin(trimmedName);
                     setIsAddingProfile(false);
                     setNewProfileName('');
@@ -276,7 +279,6 @@
                 const userData = dbUsers[selectedUserForLogin];
                 const currentDbPassword = userData ? userData.password : '';
 
-                // PIERWSZE LOGOWANIE (kod startowy 569s31) LUB RESET Z KODEM PIN Z DISCORDA
                 if (currentDbPassword === '569s31') {
                     if (passwordInput !== '569s31') {
                         setLoginError('Wpisz kod startowy: 569s31');
@@ -299,7 +301,6 @@
                         setLoginError('Błąd zapisu nowego hasła w bazie.');
                     }
                 } else if (isResetMode) {
-                    // WERYFIKACJA KODU PIN Z DISCORDA
                     if (pinInput !== generatedPin) {
                         setLoginError('Nieprawidłowy kod PIN z Discorda!');
                         return;
@@ -321,7 +322,6 @@
                         setLoginError('Błąd zapisu nowego hasła w bazie.');
                     }
                 } else {
-                    // Standardowe logowanie
                     if (passwordInput === currentDbPassword) {
                         setCurrentUser(selectedUserForLogin);
                         resetFormState();
@@ -337,20 +337,28 @@
                 resetFormState();
             };
 
-            const canUserEdit = useMemo(() => {
-                if (currentUser === 'Guest') return false;
-                if (!currentUser) return false;
-                if (currentUser === 'Michał') return true;
+            // Pobieranie szczegółowych uprawnień bieżącego użytkownika
+            const userPermissions = useMemo(() => {
+                if (currentUser === 'Guest' || !currentUser) return { add: false, edit: false, delete: false };
+                if (currentUser === 'Michał') return { add: true, edit: true, delete: true }; // Michał zawsze ma pełnię uprawnień
                 const userObj = dbUsers[currentUser];
-                return userObj ? !!userObj.canEdit : false;
+                if (userObj && userObj.permissions) {
+                    return userObj.permissions;
+                }
+                return { add: false, edit: false, delete: false };
             }, [currentUser, dbUsers]);
 
-            const toggleUserEditPermission = async (username, currentStatus) => {
-                if (username === 'Michał') return;
+            // Funkcja do zmiany pojedynczego uprawnienia przez administratora (Michała)
+            const handleToggleSpecificPermission = async (username, permKey, currentValue) => {
+                if (username === 'Michał') return; // Nie zmieniamy uprawnień administratora
+                const userObj = dbUsers[username] || {};
+                const currentPerms = userObj.permissions || { add: false, edit: false, delete: false };
+                const updatedPerms = { ...currentPerms, [permKey]: !currentValue };
+
                 try {
-                    await db.collection("users").doc(username).update({ canEdit: !currentStatus });
+                    await db.collection("users").doc(username).update({ permissions: updatedPerms });
                 } catch (err) {
-                    console.error("Błąd aktualizacji uprawnień:", err);
+                    console.error("Błąd aktualizacji uprawnienia:", err);
                 }
             };
 
@@ -469,7 +477,8 @@
 
             const handleSaveItem = async (e) => {
                 e.preventDefault();
-                if (!canUserEdit) return;
+                if (!userPermissions.add && !editingItem) return;
+                if (!userPermissions.edit && editingItem) return;
 
                 const dataToSave = {
                     ...formData,
@@ -485,7 +494,7 @@
             };
 
             const handleEdit = (item) => {
-                if (!canUserEdit) return;
+                if (!userPermissions.edit) return;
                 setEditingItem(item);
                 setFormData({
                     name: item.name || '',
@@ -501,14 +510,14 @@
             };
 
             const handleDelete = async (idDoc) => {
-                if (!canUserEdit) return;
+                if (!userPermissions.delete) return;
                 if (confirm("Czy na pewno chcesz usunąć ten sprzęt z ewidencji?")) {
                     await db.collection("equipment").doc(idDoc).delete();
                 }
             };
 
             const openNewModal = () => {
-                if (!canUserEdit) return;
+                if (!userPermissions.add) return;
                 setEditingItem(null);
                 setFormData({
                     name: '',
@@ -707,7 +716,7 @@
                                         />
                                     </div>
                                     <div className="text-[11px] text-slate-400">
-                                        ℹ️ Nowy profil otrzyma domyślnie uprawnienia do <strong>podglądu</strong>. Administrator (Michał) może je zmienić.
+                                        ℹ️ Nowy profil otrzyma domyślnie brak uprawnień do modyfikacji. Administrator (Michał) może mu przypisać osobno dodawanie, edycję lub usuwanie.
                                     </div>
                                     {loginError && <p className="text-xs text-red-400">{loginError}</p>}
                                     <div className="flex space-x-2 pt-2">
@@ -720,7 +729,8 @@
                                     {Object.keys(dbUsers).map((username) => {
                                         const initialLetter = username.charAt(0).toUpperCase();
                                         const userObj = dbUsers[username];
-                                        const isEditor = username === 'Michał' || (userObj && userObj.canEdit);
+                                        const perms = userObj.permissions || { add: false, edit: false, delete: false };
+                                        const hasAnyPerm = username === 'Michał' || perms.add || perms.edit || perms.delete;
 
                                         return (
                                             <button key={username} onClick={() => setSelectedUserForLogin(username)} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
@@ -728,7 +738,9 @@
                                                     <div className="w-9 h-9 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center font-bold">{initialLetter}</div>
                                                     <div>
                                                         <div className="font-semibold text-white group-hover:text-red-400 transition text-sm">{username}</div>
-                                                        <div className="text-xs text-slate-400">{isEditor ? 'Pełna edycja' : 'Tylko odczyt'}</div>
+                                                        <div className="text-xs text-slate-400">
+                                                            {username === 'Michał' ? 'Administrator' : hasAnyPerm ? `Uprawnienia: ${perms.add ? '➕' : ''} ${perms.edit ? '✏️' : ''} ${perms.delete ? '🗑️' : ''}` : 'Tylko odczyt'}
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <i data-lucide="lock" className="w-4 h-4 text-slate-500 group-hover:text-red-400 transition"></i>
@@ -759,10 +771,10 @@
 
             return (
                 <div className="pb-12">
-                    {(!canUserEdit || isGuest) && (
+                    {(!userPermissions.add && !userPermissions.edit && !userPermissions.delete || isGuest) && (
                         <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-300 px-4 py-2 text-center text-sm font-medium flex items-center justify-center space-x-2 no-print">
                             <i data-lucide="lock" className="w-4 h-4"></i>
-                            <span>Tryb podglądu (Tylko odczyt) – Twoje konto ma włączone uprawnienia wyłącznie do przeglądania.</span>
+                            <span>Tryb podglądu (Tylko odczyt) – Twoje konto nie ma uprawnień do modyfikacji danych.</span>
                         </div>
                     )}
 
@@ -878,7 +890,7 @@
                                     </div>
 
                                     <div className="flex items-center space-x-2">
-                                        {canUserEdit && (
+                                        {userPermissions.add && (
                                             <button onClick={openNewModal} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition flex items-center space-x-2 shadow-lg shadow-red-600/30">
                                                 <i data-lucide="plus" className="w-4 h-4"></i><span>Dodaj sprzęt</span>
                                             </button>
@@ -920,12 +932,12 @@
                                                     <th className="p-4">Ważność / Przegląd</th>
                                                     <th className="p-4">Opiekun</th>
                                                     <th className="p-4 text-center">Ilość</th>
-                                                    {canUserEdit && <th className="p-4 text-right no-print">Akcje</th>}
+                                                    {(userPermissions.edit || userPermissions.delete) && <th className="p-4 text-right no-print">Akcje</th>}
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-800/60 text-sm">
                                                 {filteredEquipment.length === 0 ? (
-                                                    <tr><td colSpan={canUserEdit ? 8 : 7} className="p-8 text-center text-slate-500">Brak sprzętu spełniającego wybrane kryteria.</td></tr>
+                                                    <tr><td colSpan={(userPermissions.edit || userPermissions.delete) ? 8 : 7} className="p-8 text-center text-slate-500">Brak sprzętu spełniającego wybrane kryteria.</td></tr>
                                                 ) : (
                                                     filteredEquipment.map(item => {
                                                         const daysToExp = getDaysToExpiry(item.expiryDate);
@@ -966,10 +978,10 @@
                                                                 </td>
                                                                 <td className="p-4 text-xs text-slate-400"><span className="font-medium text-slate-300">{item.lastInspector || '-'}</span></td>
                                                                 <td className="p-4 text-center font-semibold text-slate-200">{item.quantity}</td>
-                                                                {canUserEdit && (
+                                                                {(userPermissions.edit || userPermissions.delete) && (
                                                                     <td className="p-4 text-right space-x-2 no-print">
-                                                                        <button onClick={() => handleEdit(item)} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Edytuj"><i data-lucide="edit-3" className="w-4 h-4"></i></button>
-                                                                        <button onClick={() => handleDelete(item.idDoc)} className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition" title="Usuń"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
+                                                                        {userPermissions.edit && <button onClick={() => handleEdit(item)} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Edytuj"><i data-lucide="edit-3" className="w-4 h-4"></i></button>}
+                                                                        {userPermissions.delete && <button onClick={() => handleDelete(item.idDoc)} className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition" title="Usuń"><i data-lucide="trash-2" className="w-4 h-4"></i></button>}
                                                                     </td>
                                                                 )}
                                                             </tr>
@@ -984,39 +996,61 @@
                         )}
                     </main>
 
-                    {/* MODAL ZARZĄDZANIA UPRAWNIENIAMI (DLA MICHAŁA) */}
+                    {/* MODAL SZCZEGÓŁOWYCH UPRAWNIEN (DLA MICHAŁA) */}
                     {isPermissionsModalOpen && currentUser === 'Michał' && (
                         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-                            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
                                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                                     <div className="flex items-center space-x-2">
                                         <i data-lucide="users" className="w-5 h-5 text-cyan-400"></i>
-                                        <h3 className="text-lg font-bold text-white">Zarządzanie Uprawnieniami Profili</h3>
+                                        <h3 className="text-lg font-bold text-white">Szczegółowe Uprawnienia Profili</h3>
                                     </div>
                                     <button onClick={() => setIsPermissionsModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
                                 </div>
                                 <div className="space-y-3 text-sm text-slate-300">
-                                    <p className="text-xs text-slate-400">Nowo utworzone profile mają domyślnie włączony tylko podgląd. Jako administrator możesz zezwolić wybranym osobom na pełną edycję:</p>
-                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                    <p className="text-xs text-slate-400">Zarządzaj niezależnie uprawnieniami dla poszczególnych użytkowników (Dodawanie, Edycja, Usuwanie):</p>
+                                    <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                                         {Object.keys(dbUsers).map((username) => {
                                             const userObj = dbUsers[username];
-                                            const isEditor = username === 'Michał' || (userObj && userObj.canEdit);
+                                            const perms = userObj.permissions || { add: false, edit: false, delete: false };
+                                            const isMichal = username === 'Michał';
 
                                             return (
-                                                <div key={username} className="flex items-center justify-between bg-slate-800/60 p-3 rounded-xl border border-slate-700">
+                                                <div key={username} className="bg-slate-800/60 p-3.5 rounded-xl border border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                                     <div>
-                                                        <div className="font-semibold text-white text-sm">{username}</div>
-                                                        <div className="text-[11px] text-slate-400">{isEditor ? 'Może dodawać / edytować / usuwać' : 'Tylko odczyt / podgląd'}</div>
+                                                        <div className="font-semibold text-white text-sm flex items-center space-x-2">
+                                                            <span>{username}</span>
+                                                            {isMichal && <span className="text-[10px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/30">Admin</span>}
+                                                        </div>
+                                                        <div className="text-[11px] text-slate-400">Stan uprawnień w bazie</div>
                                                     </div>
-                                                    {username === 'Michał' ? (
-                                                        <span className="text-xs bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded border border-cyan-500/20 font-medium">Administrator</span>
+
+                                                    {isMichal ? (
+                                                        <span className="text-xs text-cyan-400 font-medium">Pełny dostęp (Administrator)</span>
                                                     ) : (
-                                                        <button 
-                                                            onClick={() => toggleUserEditPermission(username, userObj.canEdit)} 
-                                                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${isEditor ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
-                                                        >
-                                                            {isEditor ? 'Pełna edycja (Włączona)' : 'Tylko odczyt (Wyłączona)'}
-                                                        </button>
+                                                        <div className="flex items-center space-x-2">
+                                                            <button 
+                                                                onClick={() => handleToggleSpecificPermission(username, 'add', perms.add)}
+                                                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${perms.add ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-400'}`}
+                                                                title="Dodawanie"
+                                                            >
+                                                                ➕ Dodaj
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleToggleSpecificPermission(username, 'edit', perms.edit)}
+                                                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${perms.edit ? 'bg-amber-600 text-white' : 'bg-slate-700 text-slate-400'}`}
+                                                                title="Edycja"
+                                                            >
+                                                                ✏️ Edytuj
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleToggleSpecificPermission(username, 'delete', perms.delete)}
+                                                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${perms.delete ? 'bg-red-600 text-white' : 'bg-slate-700 text-slate-400'}`}
+                                                                title="Usuń"
+                                                            >
+                                                                🗑️ Usuń
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             );
@@ -1030,7 +1064,7 @@
                         </div>
                     )}
 
-                    {isModalOpen && canUserEdit && (
+                    {isModalOpen && (userPermissions.add || userPermissions.edit) && (
                         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
                                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -1107,8 +1141,7 @@
                                         <input type="text" value={discordWebhook} onChange={(e) => setDiscordWebhook(e.target.value)} placeholder="https://discord.com/api/webhooks/..." className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500" />
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between pt-3 border-t border-slate-800">
-                                    <button type="button" onClick={() => sendDiscordNotification()} disabled={discordStatus.loading || !discordWebhook} className="px-3 py-2 bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-medium disabled:opacity-50">Testuj powiadomienie</button>
+                                <div className="flex items-center justify-end pt-3 border-t border-slate-800">
                                     <button type="button" onClick={() => setIsDiscordModalOpen(false)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold">Zapisz i Zamknij</button>
                                 </div>
                             </div>
