@@ -39,15 +39,16 @@
         const { useState, useEffect, useMemo } = React;
 
         // ==========================================
-        // 🛠️ TUTAJ WKLEJ SWOJE DANE Z FIREBASE CONSOLE
+        // 🚀 KONFIGURACJA FIREBASE
         // ==========================================
         const firebaseConfig = {
-            apiKey: "TUTAJ_WKLEJ_SWOJE_API_KEY",
-            authDomain: "twoj-projekt.firebaseapp.com",
-            projectId: "twoj-projekt",
-            storageBucket: "twoj-projekt.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef"
+            apiKey: "AIzaSyCrLGk-40kQDIgY4m0vLFyHj9POkEpSNXE",
+            authDomain: "sprzetratowniczy-a2fc7.firebaseapp.com",
+            projectId: "sprzetratowniczy-a2fc7",
+            storageBucket: "sprzetratowniczy-a2fc7.firebasestorage.app",
+            messagingSenderId: "564827604976",
+            appId: "1:564827604976:web:3460aa98dbea07453b7f35",
+            measurementId: "G-JRSGPB47X8"
         };
 
         // Inicjalizacja Firebase Firestore
@@ -261,13 +262,11 @@
                 if (currentUser === 'Guest') return;
 
                 if (editingItem) {
-                    // Edycja w Firebase
                     await db.collection("equipment").doc(editingItem.idDoc).update({
                         ...formData,
                         lastInspector: currentUser
                     });
                 } else {
-                    // Dodanie nowego do Firebase
                     await db.collection("equipment").add({
                         ...formData,
                         lastInspector: currentUser
