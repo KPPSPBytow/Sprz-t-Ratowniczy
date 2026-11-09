@@ -28,9 +28,39 @@
 
     <style>
         @media print {
+            body { background: white !important; color: black !important; font-size: 11pt; }
             .no-print { display: none !important; }
             .print-only { display: block !important; }
-            body { background: white; color: black; }
+            
+            /* Resetujemy karty i tabele do czystego formatu dokumentu A4 */
+            .bg-slate-900, .bg-slate-950, .bg-slate-800 {
+                background-color: white !important;
+                color: black !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .rounded-2xl, .rounded-xl {
+                border-radius: 0 !important;
+            }
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                table-layout: auto !important;
+            }
+            th, td {
+                color: black !important;
+                border-bottom: 1px solid #cbd5e1 !important;
+                padding: 6px 8px !important;
+                font-size: 10pt !important;
+            }
+            th {
+                background-color: #f1f5f9 !important;
+                font-weight: bold !important;
+            }
+            /* Usuwamy suwaki i ograniczenia szerokości */
+            .overflow-x-auto {
+                overflow: visible !important;
+            }
         }
         .print-only { display: none; }
     </style>
@@ -60,7 +90,6 @@
         }
         const db = firebase.firestore();
 
-        // Włączenie trwałej pamięci podręcznej Firestore (Offline Persistence)
         db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
             if (err.code === 'failed-precondition') {
                 console.warn('Persistence włączona tylko w jednej zakładce na raz.');
@@ -70,15 +99,12 @@
         });
 
         function App() {
-            // Wymuszenie logowania od zera przy każdym wejściu / restarcie strony
             const [currentUser, setCurrentUser] = useState(null);
-
             const [isOnline, setIsOnline] = useState(navigator.onLine);
             const [equipment, setEquipment] = useState([]);
             const [logs, setLogs] = useState([]);
             const [loadingData, setLoadingData] = useState(true);
 
-            // Śledzenie stanu sieci (Online / Offline)
             useEffect(() => {
                 const handleOnline = () => setIsOnline(true);
                 const handleOffline = () => setIsOnline(false);
@@ -90,7 +116,6 @@
                 };
             }, []);
 
-            // Stany do logowania, resetu i zmiany hasła
             const [selectedUserForLogin, setSelectedUserForLogin] = useState(null);
             const [isResetMode, setIsResetMode] = useState(false);
             const [passwordInput, setPasswordInput] = useState('');
@@ -99,16 +124,12 @@
             const [loginError, setLoginError] = useState('');
             const [dbUsers, setDbUsers] = useState({});
 
-            // System weryfikacji Discord PIN
             const [generatedPin, setGeneratedPin] = useState(null);
             const [pinInput, setPinInput] = useState('');
             const [isSendingPin, setIsSendingPin] = useState(false);
 
-            // Stan do dodawania nowego profilu
             const [newProfileName, setNewProfileName] = useState('');
             const [isAddingProfile, setIsAddingProfile] = useState(false);
-
-            // Stan panelu uprawnień (dostępny dla Michała)
             const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
 
             const [discordWebhook, setDiscordWebhook] = useState(() => {
@@ -134,7 +155,6 @@
                 quantity: 1
             });
 
-            // Pobieranie użytkowników i haseł z Firestore
             useEffect(() => {
                 const unsubscribeUsers = db.collection("users").onSnapshot(async (snapshot) => {
                     const usersMap = {};
@@ -159,7 +179,6 @@
                 return () => unsubscribeUsers();
             }, []);
 
-            // Pobieranie rejestru zdarzeń (logów) z Firestore w czasie rzeczywistym
             useEffect(() => {
                 const unsubscribeLogs = db.collection("logs").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
                     const logItems = [];
@@ -172,7 +191,6 @@
                 return () => unsubscribeLogs();
             }, []);
 
-            // Pobieranie sprzętu z bazy Firebase w czasie rzeczywistym
             useEffect(() => {
                 const unsubscribe = db.collection("equipment").onSnapshot((snapshot) => {
                     const items = [];
@@ -222,7 +240,6 @@
                 setPinInput('');
             };
 
-            // Zapis logu do Firestore + powiadomienie na Discorda (z obsługą offline)
             const logAction = async (actionType, details) => {
                 const dateString = new Date().toLocaleString('pl-PL');
                 try {
@@ -869,7 +886,6 @@
                             </div>
 
                             <div className="flex items-center space-x-3">
-                                {/* Dyskretny wskaźnik stanu sieci w prawym rogu (ukryty przy druku) */}
                                 <div 
                                     className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition ${isOnline ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400' : 'bg-red-950/40 border-red-500/30 text-red-300'}`}
                                     title={isOnline ? 'Połączono z siecią (Chmura aktywna)' : 'Tryb Offline - dane zapisane lokalnie, zsynchronizują się po powrocie sieci'}
@@ -909,7 +925,6 @@
                             <div className="text-center py-20 text-slate-400">Ładowanie danych...</div>
                         ) : (
                             <>
-                                {/* Zakładki główne: Działy + Rejestr zdarzeń */}
                                 <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start flex-wrap gap-1 no-print">
                                     <button onClick={() => setActiveTab('All')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'All' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>Wszystko</button>
                                     <button onClick={() => setActiveTab('Wodne')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Wodne' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
@@ -927,7 +942,6 @@
                                 </div>
 
                                 {activeTab === 'Logs' ? (
-                                    /* WIDOK REJESTRU ZDARZEŃ (LOGÓW) */
                                     <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
                                         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                                             <div>
@@ -935,7 +949,7 @@
                                                     <i data-lucide="scroll" className="w-5 h-5 text-amber-400"></i>
                                                     <span>Historia operacji w systemie</span>
                                                 </h2>
-                                                <p className="text-xs text-slate-400 mt-0.5">Podgląd wszystkich akcji wykonanych przez użytkowników (kto dodał, edytował lub usunął sprzęt). Zdarzenia są też wysyłane na Discorda.</p>
+                                                <p className="text-xs text-slate-400 mt-0.5">Podgląd wszystkich akcji wykonanych przez użytkowników. Zdarzenia są też wysyłane na Discorda.</p>
                                             </div>
                                         </div>
                                         <div className="overflow-x-auto">
@@ -975,7 +989,6 @@
                                         </div>
                                     </div>
                                 ) : (
-                                    /* WIDOK STANDARDOWY EWIDENCJI SPRZĘTU */
                                     <>
                                         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 no-print">
                                             <div onClick={() => setActiveTab('All')} className={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'All' ? 'bg-slate-800/90 border-slate-600' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}>
@@ -1058,9 +1071,10 @@
                                         </div>
 
                                         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                                            <div className="print-only p-6 border-b border-slate-300">
-                                                <h1 className="text-2xl font-bold text-black">PROTOKÓŁ KONTROLI I EWIDENCJI SPRZĘTU RATOWNICZEGO</h1>
-                                                <p className="text-sm text-gray-600">Jednostka: OSP Racibórz-Markowice • Dział: {activeTab === 'All' ? 'Wszystkie Działy' : activeTab} • Data: {new Date().toLocaleDateString('pl-PL')}</p>
+                                            {/* Nagłówek widoczny WYŁĄCZNIE podczas wydruku */}
+                                            <div className="print-only mb-6 border-b border-gray-400 pb-3">
+                                                <h1 className="text-xl font-bold text-black">PROTOKÓŁ KONTROLI I EWIDENCJI SPRZĘTU RATOWNICZEGO</h1>
+                                                <p className="text-xs text-gray-700">Jednostka: OSP Racibórz-Markowice • Dział: {activeTab === 'All' ? 'Wszystkie Działy' : activeTab} • Data: {new Date().toLocaleDateString('pl-PL')}</p>
                                             </div>
 
                                             <div className="overflow-x-auto">
