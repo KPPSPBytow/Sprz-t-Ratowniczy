@@ -64,8 +64,9 @@
             const [equipment, setEquipment] = useState([]);
             const [loadingData, setLoadingData] = useState(true);
 
-            // Stany do logowania i zmiany hasła
+            // Stany do logowania, resetu i zmiany hasła
             const [selectedUserForLogin, setSelectedUserForLogin] = useState(null);
+            const [isResetMode, setIsResetMode] = useState(false);
             const [passwordInput, setPasswordInput] = useState('');
             const [newPasswordInput, setNewPasswordInput] = useState('');
             const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
@@ -167,7 +168,16 @@
                 }
             });
 
-            // Obsługa logowania i wymuszenia zmiany hasła, jeśli wciąż jest domyślne ("569s31")
+            const resetFormState = () => {
+                setSelectedUserForLogin(null);
+                setIsResetMode(false);
+                setPasswordInput('');
+                setNewPasswordInput('');
+                setConfirmPasswordInput('');
+                setLoginError('');
+            };
+
+            // Obsługa logowania i awaryjnego resetowania hasła
             const handleLoginSubmit = async (e) => {
                 e.preventDefault();
                 setLoginError('');
@@ -179,9 +189,10 @@
 
                 const currentDbPassword = dbUsers[selectedUserForLogin];
 
-                if (currentDbPassword === '569s31') {
+                // TRYB RESETU HASŁA LUB PIERWSZE LOGOWANIE
+                if (isResetMode || currentDbPassword === '569s31') {
                     if (passwordInput !== '569s31') {
-                        setLoginError('Nieprawidłowe hasło startowe.');
+                        setLoginError('Nieprawidłowe hasło startowe/Master (569s31)!');
                         return;
                     }
                     if (!newPasswordInput || newPasswordInput.length < 4) {
@@ -196,18 +207,15 @@
                     try {
                         await db.collection("users").doc(selectedUserForLogin).update({ password: newPasswordInput });
                         setCurrentUser(selectedUserForLogin);
-                        setSelectedUserForLogin(null);
-                        setPasswordInput('');
-                        setNewPasswordInput('');
-                        setConfirmPasswordInput('');
+                        resetFormState();
                     } catch (err) {
                         setLoginError('Błąd zapisu nowego hasła w bazie.');
                     }
                 } else {
+                    // Standardowe logowanie
                     if (passwordInput === currentDbPassword) {
                         setCurrentUser(selectedUserForLogin);
-                        setSelectedUserForLogin(null);
-                        setPasswordInput('');
+                        resetFormState();
                     } else {
                         setLoginError('Nieprawidłowe hasło!');
                     }
@@ -217,10 +225,7 @@
             const handleLogout = () => {
                 localStorage.removeItem('rescue_user');
                 setCurrentUser(null);
-                setSelectedUserForLogin(null);
-                setPasswordInput('');
-                setNewPasswordInput('');
-                setConfirmPasswordInput('');
+                resetFormState();
             };
 
             const getDaysToExpiry = (dateString) => {
@@ -429,6 +434,7 @@
             // -------------------------------------------------------------
             if (!currentUser) {
                 const isFirstLogin = selectedUserForLogin && dbUsers[selectedUserForLogin] === '569s31';
+                const showResetOrFirstFields = isResetMode || isFirstLogin;
 
                 return (
                     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
@@ -443,22 +449,24 @@
                                 <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
                                     <div className="flex items-center justify-between bg-slate-800/60 p-3 rounded-xl border border-slate-700">
                                         <span className="text-sm text-slate-300">Profil: <strong className="text-white">{selectedUserForLogin}</strong></span>
-                                        <button type="button" onClick={() => { setSelectedUserForLogin(null); setPasswordInput(''); setNewPasswordInput(''); setConfirmPasswordInput(''); setLoginError(''); }} className="text-xs text-slate-400 hover:text-white underline">Zmień</button>
+                                        <button type="button" onClick={resetFormState} className="text-xs text-slate-400 hover:text-white underline">Zmień</button>
                                     </div>
 
-                                    {isFirstLogin ? (
+                                    {showResetOrFirstFields ? (
                                         <>
                                             <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300">
-                                                ⚠️ Pierwsze logowanie! Wpisz podane hasło startowe, a następnie ustaw swoje własne nowe hasło główne.
+                                                {isFirstLogin 
+                                                    ? "⚠️ Pierwsze logowanie! Wpisz kod startowy, a następnie ustaw nowe hasło." 
+                                                    : "🔐 Resetowanie hasła! Wpisz kod Master (569s31), aby ustawić nowe hasło."}
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Hasło startowe</label>
+                                                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Kod startowy / Master</label>
                                                 <input 
                                                     type="password" 
                                                     required 
                                                     value={passwordInput} 
                                                     onChange={(e) => setPasswordInput(e.target.value)} 
-                                                    placeholder="Hasło startowe" 
+                                                    placeholder="Kod 569s31" 
                                                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
                                                 />
                                             </div>
@@ -487,7 +495,10 @@
                                         </>
                                     ) : (
                                         <div>
-                                            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Hasło główne</label>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="block text-xs font-semibold text-slate-400 uppercase">Hasło główne</label>
+                                                <button type="button" onClick={() => { setIsResetMode(true); setPasswordInput(''); setLoginError(''); }} className="text-[11px] text-red-400 hover:underline">Resetuj / Zmień hasło</button>
+                                            </div>
                                             <input 
                                                 type="password" 
                                                 autoFocus 
@@ -503,8 +514,8 @@
                                     {loginError && <p className="text-xs text-red-400">{loginError}</p>}
                                     
                                     <div className="flex space-x-2 pt-2">
-                                        <button type="button" onClick={() => { setSelectedUserForLogin(null); setPasswordInput(''); setNewPasswordInput(''); setConfirmPasswordInput(''); setLoginError(''); }} className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition">Anuluj</button>
-                                        <button type="submit" className="w-1/2 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition shadow-lg shadow-red-600/30">{isFirstLogin ? 'Zapisz i Zaloguj' : 'Zaloguj'}</button>
+                                        <button type="button" onClick={resetFormState} className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition">Anuluj</button>
+                                        <button type="submit" className="w-1/2 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition shadow-lg shadow-red-600/30">{showResetOrFirstFields ? 'Zapisz i Zaloguj' : 'Zaloguj'}</button>
                                     </div>
                                 </form>
                             ) : (
