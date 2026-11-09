@@ -206,15 +206,44 @@
                 setPinInput('');
             };
 
+            // Zapis logu do Firestore + powiadomienie na Discorda
             const logAction = async (actionType, details) => {
+                const dateString = new Date().toLocaleString('pl-PL');
                 try {
+                    // 1. Zapis do bazy danych
                     await db.collection("logs").add({
                         user: currentUser,
                         action: actionType, // 'DODANIE', 'EDYCJA', 'USUNIĘCIE'
                         details: details,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        dateStr: new Date().toLocaleString('pl-PL')
+                        dateStr: dateString
                     });
+
+                    // 2. Wysyłanie powiadomienia na Discorda (jeśli skonfigurowano Webhook)
+                    if (discordWebhook) {
+                        let color = 3447003; // niebieski
+                        let emoji = '📝';
+                        if (actionType === 'DODANIE') { color = 5763719; emoji = '➕'; }
+                        else if (actionType === 'EDYCJA') { color = 16705300; emoji = '✏️'; }
+                        else if (actionType === 'USUNIĘCIE') { color = 15548997; emoji = '🗑️'; }
+
+                        const payload = {
+                            username: "System Ewidencji Sprzętu",
+                            avatar_url: "https://cdn-icons-png.flaticon.com/512/1023/1023656.png",
+                            embeds: [{
+                                title: `${emoji} Dziennik Zdarzeń: ${actionType}`,
+                                description: `**Użytkownik:** ${currentUser}\n**Szczegóły:** ${details}`,
+                                color: color,
+                                footer: { text: `Data: ${dateString}` }
+                            }]
+                        };
+
+                        fetch(discordWebhook, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        }).catch(e => console.error("Błąd wysyłania logu na Discord:", e));
+                    }
                 } catch (err) {
                     console.error("Błąd zapisu logu:", err);
                 }
@@ -512,10 +541,10 @@
 
                 if (editingItem) {
                     await db.collection("equipment").doc(editingItem.idDoc).update(dataToSave);
-                    await logAction("EDYCJA", `Zaktualizowano sprzęt: ${formData.name} (${formData.inventoryNo})`);
+                    await logAction("EDYCJA", `Zaktualizowano sprzęt: "${formData.name}" (Nr: ${formData.inventoryNo}, Lokalizacja: ${formData.location})`);
                 } else {
                     await db.collection("equipment").add(dataToSave);
-                    await logAction("DODANIE", `Dodano nowy sprzęt: ${formData.name} (${formData.inventoryNo})`);
+                    await logAction("DODANIE", `Dodano nowy sprzęt: "${formData.name}" (Nr: ${formData.inventoryNo}, Kategoria: ${formData.category})`);
                 }
                 closeModal();
             };
@@ -540,7 +569,7 @@
                 if (!userPermissions.delete) return;
                 if (confirm(`Czy na pewno chcesz usunąć "${itemToDelete.name}" z ewidencji?`)) {
                     await db.collection("equipment").doc(itemToDelete.idDoc).delete();
-                    await logAction("USUNIĘCIE", `Usunięto sprzęt: ${itemToDelete.name} (${itemToDelete.inventoryNo})`);
+                    await logAction("USUNIĘCIE", `Usunięto sprzęt: "${itemToDelete.name}" (Nr: ${itemToDelete.inventoryNo})`);
                 }
             };
 
@@ -876,7 +905,7 @@
                                                     <i data-lucide="scroll" className="w-5 h-5 text-amber-400"></i>
                                                     <span>Historia operacji w systemie</span>
                                                 </h2>
-                                                <p className="text-xs text-slate-400 mt-0.5">Podgląd wszystkich akcji wykonanych przez użytkowników (kto dodał, edytował lub usunął sprzęt)</p>
+                                                <p className="text-xs text-slate-400 mt-0.5">Podgląd wszystkich akcji wykonanych przez użytkowników (kto dodał, edytował lub usunął sprzęt). Zdarzenia są też wysyłane na Discorda.</p>
                                             </div>
                                         </div>
                                         <div className="overflow-x-auto">
