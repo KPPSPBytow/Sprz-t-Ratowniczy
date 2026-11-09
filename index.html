@@ -96,7 +96,6 @@
                         items.push({ idDoc: doc.id, ...doc.data() });
                     });
                     
-                    // Jeśli baza jest całkowicie pusta, dodaj domyślne dane startowe
                     if (items.length === 0) {
                         const initialData = [
                             { name: "Łódź płaskodawna z silnikiem Honda 50KM", category: "Wodne", inventoryNo: "EQUIP-WOD-001", location: "Garaż / Przyczepa P1", status: "Sprawny", expiryDate: "2026-11-20", lastInspector: "Michał", notes: "Przegląd silnika wygasa niebawem.", quantity: 1 },
@@ -261,16 +260,20 @@
                 e.preventDefault();
                 if (currentUser === 'Guest') return;
 
+                // Automatyczne przypisanie właściwego opiekuna na podstawie wybranego działu
+                let correctInspector = 'Filip';
+                if (formData.category === 'Wodne') correctInspector = 'Michał';
+                else if (formData.category === 'Wysokościowe') correctInspector = 'Jakub';
+
+                const dataToSave = {
+                    ...formData,
+                    lastInspector: correctInspector
+                };
+
                 if (editingItem) {
-                    await db.collection("equipment").doc(editingItem.idDoc).update({
-                        ...formData,
-                        lastInspector: currentUser
-                    });
+                    await db.collection("equipment").doc(editingItem.idDoc).update(dataToSave);
                 } else {
-                    await db.collection("equipment").add({
-                        ...formData,
-                        lastInspector: currentUser
-                    });
+                    await db.collection("equipment").add(dataToSave);
                 }
                 closeModal();
             };
