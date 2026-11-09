@@ -923,6 +923,7 @@
                             <div className="text-center py-20 text-slate-400">Ładowanie danych...</div>
                         ) : (
                             <>
+                                {/* 1. Kafelki Statystyk */}
                                 <div className="grid grid-cols-2 md:grid-cols-6 gap-3 no-print">
                                     <div onClick={() => setActiveTab('All')} className={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'All' ? 'bg-slate-800/90 border-slate-600' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}>
                                         <div className="text-xs font-medium text-slate-400 mb-1">Cały Sprzęt</div>
@@ -953,6 +954,7 @@
                                     </div>
                                 </div>
 
+                                {/* 2. Baner alertu Discord */}
                                 {stats.expiringSoon > 0 && (
                                     <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 no-print">
                                         <div className="flex items-center space-x-3">
@@ -976,7 +978,7 @@
                                     </div>
                                 )}
 
-                                {/* Pasek zakładek (kategorii) przeniesiony pod baner Discorda */}
+                                {/* 3. Pasek Zakładek (Kategorii) - TUTAJ DOKŁADNIE POD DISCORDEM */}
                                 <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start flex-wrap gap-1 no-print">
                                     <button onClick={() => setActiveTab('All')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'All' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>Wszystko</button>
                                     <button onClick={() => setActiveTab('Wodne')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Wodne' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
