@@ -64,9 +64,11 @@
             const [equipment, setEquipment] = useState([]);
             const [loadingData, setLoadingData] = useState(true);
 
-            // Stany do logowania z hasłem
+            // Stany do logowania i zmiany hasła
             const [selectedUserForLogin, setSelectedUserForLogin] = useState(null);
             const [passwordInput, setPasswordInput] = useState('');
+            const [newPasswordInput, setNewPasswordInput] = useState('');
+            const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
             const [loginError, setLoginError] = useState('');
             const [dbUsers, setDbUsers] = useState({});
 
@@ -93,7 +95,7 @@
                 quantity: 1
             });
 
-            // Pobieranie użytkowników i ich haseł z Firestore
+            // Pobieranie użytkowników i haseł z Firestore
             useEffect(() => {
                 const unsubscribeUsers = db.collection("users").onSnapshot(async (snapshot) => {
                     const usersMap = {};
@@ -101,12 +103,12 @@
                         usersMap[doc.id] = doc.data().password;
                     });
 
-                    // Jeśli w bazie nie ma jeszcze użytkowników, utwórz domyślnych z hasłem "1234"
+                    // Jeśli brak kont w bazie, stwórz je z hasłem startowym "569s31"
                     if (snapshot.empty) {
                         const defaultUsers = {
-                            "Filip": { password: "1234" },
-                            "Michał": { password: "1234" },
-                            "Jakub": { password: "1234" }
+                            "Filip": { password: "569s31" },
+                            "Michał": { password: "569s31" },
+                            "Jakub": { password: "569s31" }
                         };
                         for (const [username, data] of Object.entries(defaultUsers)) {
                             await db.collection("users").doc(username).set(data);
@@ -165,7 +167,8 @@
                 }
             });
 
-            const handleLoginSubmit = (e) => {
+            // Obsługa logowania i wymuszenia zmiany hasła, jeśli wciąż jest domyślne ("569s31")
+            const handleLoginSubmit = async (e) => {
                 e.preventDefault();
                 setLoginError('');
 
@@ -174,13 +177,43 @@
                     return;
                 }
 
-                const correctPassword = dbUsers[selectedUserForLogin];
-                if (passwordInput === correctPassword) {
-                    setCurrentUser(selectedUserForLogin);
-                    setSelectedUserForLogin(null);
-                    setPasswordInput('');
+                const currentDbPassword = dbUsers[selectedUserForLogin];
+
+                // Jeśli w bazie jest jeszcze hasło startowe, sprawdzamy je i wymuszamy zmianę na nowe
+                if (currentDbPassword === '569s31') {
+                    if (passwordInput !== '569s31') {
+                        setLoginError('To pierwsze logowanie! Wpisz hasło startowe: 569s31');
+                        return;
+                    }
+                    if (!newPasswordInput || newPasswordInput.length < 4) {
+                        setLoginError('Nowe hasło musi mieć co najmniej 4 znaki.');
+                        return;
+                    }
+                    if (newPasswordInput !== confirmPasswordInput) {
+                        setLoginError('Nowe hasła nie zgadzają się!');
+                        return;
+                    }
+
+                    // Zapisujemy nowe hasło w bazie Firestore
+                    try {
+                        await db.collection("users").doc(selectedUserForLogin).update({ password: newPasswordInput });
+                        setCurrentUser(selectedUserForLogin);
+                        setSelectedUserForLogin(null);
+                        setPasswordInput('');
+                        setNewPasswordInput('');
+                        setConfirmPasswordInput('');
+                    } catch (err) {
+                        setLoginError('Błąd zapisu nowego hasła w bazie.');
+                    }
                 } else {
-                    setLoginError('Nieprawidłowe hasło! Spróbuj ponownie (domyślne hasło to: 1234).');
+                    // Standardowe logowanie stałym hasłem głównym
+                    if (passwordInput === currentDbPassword) {
+                        setCurrentUser(selectedUserForLogin);
+                        setSelectedUserForLogin(null);
+                        setPasswordInput('');
+                    } else {
+                        setLoginError('Nieprawidłowe hasło!');
+                    }
                 }
             };
 
@@ -189,6 +222,8 @@
                 setCurrentUser(null);
                 setSelectedUserForLogin(null);
                 setPasswordInput('');
+                setNewPasswordInput('');
+                setConfirmPasswordInput('');
             };
 
             const getDaysToExpiry = (dateString) => {
@@ -396,6 +431,8 @@
             // EKRAN WYBORU PROFILU I LOGOWANIA HASEŁ
             // -------------------------------------------------------------
             if (!currentUser) {
+                const isFirstLogin = selectedUserForLogin && dbUsers[selectedUserForLogin] === '569s31';
+
                 return (
                     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
                         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full shadow-2xl text-center">
@@ -405,33 +442,75 @@
                             <h1 className="text-2xl font-bold text-white mb-2">Ewidencja Sprzętu Ratowniczego</h1>
                             <p className="text-slate-400 mb-6 text-sm">Wybierz swój profil i podaj hasło</p>
                             
-                            {/* Formularz wpisywania hasła po kliknięciu użytkownika */}
                             {selectedUserForLogin ? (
                                 <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
                                     <div className="flex items-center justify-between bg-slate-800/60 p-3 rounded-xl border border-slate-700">
-                                        <span className="text-sm text-slate-300">Logujesz się jako: <strong className="text-white">{selectedUserForLogin}</strong></span>
-                                        <button type="button" onClick={() => { setSelectedUserForLogin(null); setPasswordInput(''); setLoginError(''); }} className="text-xs text-slate-400 hover:text-white underline">Zmień</button>
+                                        <span className="text-sm text-slate-300">Profil: <strong className="text-white">{selectedUserForLogin}</strong></span>
+                                        <button type="button" onClick={() => { setSelectedUserForLogin(null); setPasswordInput(''); setNewPasswordInput(''); setConfirmPasswordInput(''); setLoginError(''); }} className="text-xs text-slate-400 hover:text-white underline">Zmień</button>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Hasło dostępu</label>
-                                        <input 
-                                            type="password" 
-                                            autoFocus 
-                                            required 
-                                            value={passwordInput} 
-                                            onChange={(e) => setPasswordInput(e.target.value)} 
-                                            placeholder="Wpisz hasło..." 
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
-                                        />
-                                    </div>
+
+                                    {isFirstLogin ? (
+                                        <>
+                                            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300">
+                                                ⚠️ Pierwsze logowanie! Wpisz hasło startowe, a następnie ustaw swoje własne nowe hasło główne.
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Hasło startowe</label>
+                                                <input 
+                                                    type="password" 
+                                                    required 
+                                                    value={passwordInput} 
+                                                    onChange={(e) => setPasswordInput(e.target.value)} 
+                                                    placeholder="Wpisz 569s31" 
+                                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Nowe hasło główne</label>
+                                                <input 
+                                                    type="password" 
+                                                    required 
+                                                    value={newPasswordInput} 
+                                                    onChange={(e) => setNewPasswordInput(e.target.value)} 
+                                                    placeholder="Wpisz nowe hasło..." 
+                                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Potwierdź nowe hasło</label>
+                                                <input 
+                                                    type="password" 
+                                                    required 
+                                                    value={confirmPasswordInput} 
+                                                    onChange={(e) => setConfirmPasswordInput(e.target.value)} 
+                                                    placeholder="Powtórz nowe hasło..." 
+                                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
+                                                />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Hasło główne</label>
+                                            <input 
+                                                type="password" 
+                                                autoFocus 
+                                                required 
+                                                value={passwordInput} 
+                                                onChange={(e) => setPasswordInput(e.target.value)} 
+                                                placeholder="Wpisz swoje hasło..." 
+                                                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
+                                            />
+                                        </div>
+                                    )}
+
                                     {loginError && <p className="text-xs text-red-400">{loginError}</p>}
+                                    
                                     <div className="flex space-x-2 pt-2">
-                                        <button type="button" onClick={() => { setSelectedUserForLogin(null); setPasswordInput(''); setLoginError(''); }} className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition">Anuluj</button>
-                                        <button type="submit" className="w-1/2 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition shadow-lg shadow-red-600/30">Zaloguj</button>
+                                        <button type="button" onClick={() => { setSelectedUserForLogin(null); setPasswordInput(''); setNewPasswordInput(''); setConfirmPasswordInput(''); setLoginError(''); }} className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition">Anuluj</button>
+                                        <button type="submit" className="w-1/2 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition shadow-lg shadow-red-600/30">{isFirstLogin ? 'Zapisz i Zaloguj' : 'Zaloguj'}</button>
                                     </div>
                                 </form>
                             ) : (
-                                /* Lista profili do wyboru */
                                 <div className="space-y-3">
                                     <button onClick={() => setSelectedUserForLogin('Filip')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
                                         <div className="flex items-center space-x-3">
@@ -466,7 +545,7 @@
                                     </button>
                                 </div>
                             )}
-                            <p className="text-[11px] text-slate-500 mt-6">Domyślne hasło dla nowych kont w bazie to: <code className="text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">1234</code></p>
+                            <p className="text-[11px] text-slate-500 mt-6">Pierwsze hasło startowe dla kont: <code className="text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">569s31</code></p>
                         </div>
                     </div>
                 );
