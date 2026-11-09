@@ -51,7 +51,6 @@
             measurementId: "G-JRSGPB47X8"
         };
 
-        // Inicjalizacja Firebase Firestore
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
@@ -115,10 +114,11 @@
                 return () => unsubscribe();
             }, []);
 
-            // Obsługa zapisu/czyszczenia użytkownika w localStorage
+            // Zapis sesji użytkownika w pamięci przeglądarki
             useEffect(() => {
                 if (currentUser) {
                     localStorage.setItem('rescue_user', currentUser);
+                    setActiveTab('All'); // Zawsze po zalogowaniu ustawiamy zakładkę "Wszystko"
                 } else {
                     localStorage.removeItem('rescue_user');
                 }
@@ -301,7 +301,7 @@
                 setEditingItem(null);
                 setFormData({
                     name: '',
-                    category: currentUser === 'Filip' ? 'Medyczne' : (currentUser === 'Jakub' ? 'Wysokościowe' : 'Wodne'),
+                    category: 'Wodne',
                     inventoryNo: `EQUIP-${Date.now().toString().slice(-4)}`,
                     location: '',
                     status: 'Sprawny',
@@ -340,6 +340,9 @@
                 document.body.removeChild(link);
             };
 
+            // -------------------------------------------------------------
+            // EKRAN WYBORU PROFILU / LOGOWANIA
+            // -------------------------------------------------------------
             if (!currentUser) {
                 return (
                     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
