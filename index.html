@@ -127,13 +127,10 @@
                 localStorage.setItem('rescue_discord_webhook', discordWebhook);
             }, [discordWebhook]);
 
+            // Po zmianie konta lub zalogowaniu zawsze ustawiamy zakładkę "Wszystko"
             useEffect(() => {
-                if (currentUser === 'Filip') {
-                    setActiveTab('Medyczne');
-                } else if (currentUser === 'Michał') {
-                    setActiveTab('Wodne');
-                } else if (currentUser === 'Jakub') {
-                    setActiveTab('Wysokościowe');
+                if (currentUser) {
+                    setActiveTab('All');
                 }
             }, [currentUser]);
 
@@ -442,7 +439,7 @@
                         ) : (
                             <>
                                 <div className="grid grid-cols-2 md:grid-cols-6 gap-3 no-print">
-                                    <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5">
+                                    <div onClick={() => setActiveTab('All')} className={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'All' ? 'bg-slate-800/90 border-slate-600' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}>
                                         <div className="text-xs font-medium text-slate-400 mb-1">Cały Sprzęt</div>
                                         <div className="text-2xl font-bold text-white">{stats.total}</div>
                                     </div>
