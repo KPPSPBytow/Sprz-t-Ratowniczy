@@ -63,18 +63,6 @@
             },
             {
                 id: 3,
-                name: "Kombinezon suchy wypornościowy Titan",
-                category: "Wodne",
-                inventoryNo: "EQUIP-WOD-003",
-                location: "Magazyn Wodny - Szafa 2",
-                status: "W naprawie",
-                expiryDate: "2027-01-15",
-                lastInspector: "Michał",
-                notes: "Uszkodzony manszet w rękawie prawym. Oddane do serwisu.",
-                quantity: 2
-            },
-            {
-                id: 4,
                 name: "Torba Ratownicza R1 ze stelażem",
                 category: "Medyczne",
                 inventoryNo: "EQUIP-MED-001",
@@ -86,7 +74,7 @@
                 quantity: 1
             },
             {
-                id: 5,
+                id: 4,
                 name: "Butla tlenowa 10L z reduktorem",
                 category: "Medyczne",
                 inventoryNo: "EQUIP-MED-002",
@@ -98,33 +86,45 @@
                 quantity: 1
             },
             {
-                id: 6,
-                name: "Defibrylator AED ZOLL Plus",
-                category: "Medyczne",
-                inventoryNo: "EQUIP-MED-003",
-                location: "Wóz GBA 2,5/16 - Kabina",
+                id: 5,
+                name: "Uprząż pełna ratownicza Singer Pro",
+                category: "Wysokościowe",
+                inventoryNo: "EQUIP-WYS-001",
+                location: "Magazyn Główny - Torba Wysokościowa 1",
                 status: "Sprawny",
-                expiryDate: "2027-08-30",
-                lastInspector: "Filip",
-                notes: "Elektrody i baterie wymienione w zeszłym miesiącu.",
-                quantity: 1
+                expiryDate: "2026-11-30",
+                lastInspector: "Jakub",
+                notes: "Sprawdzono szwy i klamry. Wymaga corocznej inspekcji.",
+                quantity: 2
+            },
+            {
+                id: 6,
+                name: "Lina rdzeniowa statyczna 11mm (50m)",
+                category: "Wysokościowe",
+                inventoryNo: "EQUIP-WYS-002",
+                location: "Magazyn Główny - Torba Wysokościowa 1",
+                status: "Sprawny",
+                expiryDate: "2027-04-12",
+                lastInspector: "Jakub",
+                notes: "Po kontroli wzrokowej i dotykowej.",
+                quantity: 2
             },
             {
                 id: 7,
-                name: "Rzutka rękawowa 25m",
-                category: "Wodne",
-                inventoryNo: "EQUIP-WOD-004",
-                location: "Łódź P1",
-                status: "Sprawny",
-                expiryDate: "2029-01-01",
-                lastInspector: "Michał",
-                notes: "Lina sprawdzona.",
-                quantity: 2
+                name: "Trójnóg ewakuacyjny z wyciągarką",
+                category: "Wysokościowe",
+                inventoryNo: "EQUIP-WYS-003",
+                location: "Garaż - Skrytka Sprzęt Specjalny",
+                status: "W naprawie",
+                expiryDate: "2026-12-15",
+                lastInspector: "Jakub",
+                notes: "Wymiana linki stalowej w wyciągarce.",
+                quantity: 1
             }
         ];
 
         function App() {
-            // Użytkownicy: Filip (Medyk), Michał (Wodny), Guest (Tylko Odczyt)
+            // Użytkownicy: Filip (Medyk), Michał (Wodny), Jakub (Wysokościowy), Guest (Tylko Odczyt)
             const [currentUser, setCurrentUser] = useState(() => {
                 return localStorage.getItem('rescue_user') || null;
             });
@@ -178,6 +178,8 @@
                     setActiveTab('Medyczne');
                 } else if (currentUser === 'Michał') {
                     setActiveTab('Wodne');
+                } else if (currentUser === 'Jakub') {
+                    setActiveTab('Wysokościowe');
                 }
             }, [currentUser]);
 
@@ -238,10 +240,20 @@
                 const fields = items.map(item => {
                     const days = getDaysToExpiry(item.expiryDate);
                     const daysText = days < 0 ? `⚠️ WYGASŁO (${Math.abs(days)} dni temu)` : `⏱️ Zostało: ${days} dni`;
-                    const mentor = item.category === 'Wodne' ? 'Michał (@Michał)' : 'Filip (@Filip)';
+                    
+                    let mentor = 'Filip (@Filip)';
+                    let icon = '💊';
+                    if (item.category === 'Wodne') {
+                        mentor = 'Michał (@Michał)';
+                        icon = '🚤';
+                    } else if (item.category === 'Wysokościowe') {
+                        mentor = 'Jakub (@Jakub)';
+                        icon = '🧗';
+                    }
+
                     return {
-                        name: `${item.category === 'Wodne' ? '🚤' : '💊'} ${item.name} (${item.inventoryNo})`,
-                        value: `• **Lokalizacja:** ${item.location}\n• **Data ważności:** ${item.expiryDate} (${daysText})\n• **Opiekun:** ${mentor}\n• **Stan:** ${item.status}`,
+                        name: `${icon} ${item.name} (${item.inventoryNo})`,
+                        value: `• **Dział:** ${item.category}\n• **Lokalizacja:** ${item.location}\n• **Data ważności:** ${item.expiryDate} (${daysText})\n• **Opiekun:** ${mentor}\n• **Stan:** ${item.status}`,
                         inline: false
                     };
                 });
@@ -295,13 +307,14 @@
                 const total = equipment.length;
                 const wodne = equipment.filter(i => i.category === 'Wodne').length;
                 const medyczne = equipment.filter(i => i.category === 'Medyczne').length;
+                const wysokosciowe = equipment.filter(i => i.category === 'Wysokościowe').length;
                 const expiringSoon = equipment.filter(i => {
                     const days = getDaysToExpiry(i.expiryDate);
                     return days !== null && days <= 30;
                 }).length;
                 const damaged = equipment.filter(i => i.status !== 'Sprawny').length;
 
-                return { total, wodne, medyczne, expiringSoon, damaged };
+                return { total, wodne, medyczne, wysokosciowe, expiringSoon, damaged };
             }, [equipment]);
 
             const handleSaveItem = (e) => {
@@ -346,7 +359,7 @@
                 setEditingItem(null);
                 setFormData({
                     name: '',
-                    category: currentUser === 'Filip' ? 'Medyczne' : 'Wodne',
+                    category: currentUser === 'Filip' ? 'Medyczne' : (currentUser === 'Jakub' ? 'Wysokościowe' : 'Wodne'),
                     inventoryNo: `EQUIP-${Date.now().toString().slice(-4)}`,
                     location: '',
                     status: 'Sprawny',
@@ -396,53 +409,69 @@
                             <h1 class="text-2xl font-bold text-white mb-2">Ewidencja Sprzętu Ratowniczego</h1>
                             <p class="text-slate-400 mb-8 text-sm">Wybierz swój profil, aby przejść do systemu zarządzania</p>
                             
-                            <div class="space-y-4">
+                            <div class="space-y-3">
                                 <button 
                                     onClick={() => setCurrentUser('Filip')}
-                                    class="w-full flex items-center justify-between p-4 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left"
+                                    class="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left"
                                 >
                                     <div class="flex items-center space-x-3">
-                                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">
+                                        <div class="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">
                                             F
                                         </div>
                                         <div>
-                                            <div class="font-semibold text-white group-hover:text-emerald-400 transition">Filip</div>
-                                            <div class="text-xs text-slate-400">Nadzorca Ratownictwa Medycznego (R1)</div>
+                                            <div class="font-semibold text-white group-hover:text-emerald-400 transition text-sm">Filip</div>
+                                            <div class="text-xs text-slate-400">Ratownictwo Medyczne (R1)</div>
                                         </div>
                                     </div>
-                                    <i data-lucide="chevron-right" class="w-5 h-5 text-slate-500 group-hover:text-emerald-400 transition"></i>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition"></i>
                                 </button>
 
                                 <button 
                                     onClick={() => setCurrentUser('Michał')}
-                                    class="w-full flex items-center justify-between p-4 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left"
+                                    class="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left"
                                 >
                                     <div class="flex items-center space-x-3">
-                                        <div class="w-10 h-10 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">
+                                        <div class="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">
                                             M
                                         </div>
                                         <div>
-                                            <div class="font-semibold text-white group-hover:text-cyan-400 transition">Michał</div>
-                                            <div class="text-xs text-slate-400">Nadzorca Ratownictwa Wodnego</div>
+                                            <div class="font-semibold text-white group-hover:text-cyan-400 transition text-sm">Michał</div>
+                                            <div class="text-xs text-slate-400">Ratownictwo Wodne</div>
                                         </div>
                                     </div>
-                                    <i data-lucide="chevron-right" class="w-5 h-5 text-slate-500 group-hover:text-cyan-400 transition"></i>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition"></i>
+                                </button>
+
+                                <button 
+                                    onClick={() => setCurrentUser('Jakub')}
+                                    class="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left"
+                                >
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold">
+                                            J
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-white group-hover:text-purple-400 transition text-sm">Jakub</div>
+                                            <div class="text-xs text-slate-400">Ratownictwo Wysokościowe</div>
+                                        </div>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition"></i>
                                 </button>
 
                                 <button 
                                     onClick={() => setCurrentUser('Guest')}
-                                    class="w-full flex items-center justify-between p-4 bg-slate-800/40 hover:bg-slate-800 border border-slate-800 rounded-xl transition group text-left"
+                                    class="w-full flex items-center justify-between p-3.5 bg-slate-800/40 hover:bg-slate-800 border border-slate-800 rounded-xl transition group text-left"
                                 >
                                     <div class="flex items-center space-x-3">
-                                        <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">
+                                        <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">
                                             G
                                         </div>
                                         <div>
-                                            <div class="font-semibold text-slate-300 group-hover:text-white transition">Gość / Obserwator</div>
+                                            <div class="font-semibold text-slate-300 group-hover:text-white transition text-sm">Gość / Obserwator</div>
                                             <div class="text-xs text-amber-500/80">Podgląd bez możliwości edycji</div>
                                         </div>
                                     </div>
-                                    <i data-lucide="eye" class="w-5 h-5 text-slate-500 group-hover:text-amber-400 transition"></i>
+                                    <i data-lucide="eye" class="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition"></i>
                                 </button>
                             </div>
                         </div>
@@ -469,14 +498,18 @@
                                 </div>
                                 <div>
                                     <h1 class="text-xl font-bold text-white tracking-wide">SYSTEM REJESTRU SPRZĘTU RATOWNICZEGO</h1>
-                                    <p class="text-xs text-slate-400">Jednostka OSP / PSP • Moduł Wodny i Medyczny</p>
+                                    <p class="text-xs text-slate-400">Jednostka OSP / PSP • Moduł Wodny, Medyczny i Wysokościowy</p>
                                 </div>
                             </div>
 
                             <div class="flex items-center space-x-3">
                                 <div class="flex items-center bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-sm">
                                     <span class="text-slate-400 text-xs mr-2">Zalogowany:</span>
-                                    <span class={`font-semibold ${currentUser === 'Filip' ? 'text-emerald-400' : currentUser === 'Michał' ? 'text-cyan-400' : 'text-amber-400'}`}>
+                                    <span class={`font-semibold ${
+                                        currentUser === 'Filip' ? 'text-emerald-400' : 
+                                        currentUser === 'Michał' ? 'text-cyan-400' : 
+                                        currentUser === 'Jakub' ? 'text-purple-400' : 'text-amber-400'
+                                    }`}>
                                         {currentUser} {isGuest && '(Obserwator)'}
                                     </span>
                                 </div>
@@ -502,14 +535,15 @@
                     </header>
 
                     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 no-print">
-                            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
+                        {/* Kafelki Statystyk */}
+                        <div class="grid grid-cols-2 md:grid-cols-6 gap-3 no-print">
+                            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5">
                                 <div class="text-xs font-medium text-slate-400 mb-1">Cały Sprzęt</div>
                                 <div class="text-2xl font-bold text-white">{stats.total}</div>
                             </div>
                             <div 
                                 onClick={() => setActiveTab('Wodne')}
-                                class={`cursor-pointer border rounded-xl p-4 transition ${activeTab === 'Wodne' ? 'bg-cyan-950/40 border-cyan-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}
+                                class={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'Wodne' ? 'bg-cyan-950/40 border-cyan-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}
                             >
                                 <div class="text-xs font-medium text-cyan-400 mb-1 flex items-center justify-between">
                                     <span>Rat. Wodne</span>
@@ -520,23 +554,34 @@
                             </div>
                             <div 
                                 onClick={() => setActiveTab('Medyczne')}
-                                class={`cursor-pointer border rounded-xl p-4 transition ${activeTab === 'Medyczne' ? 'bg-emerald-950/40 border-emerald-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}
+                                class={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'Medyczne' ? 'bg-emerald-950/40 border-emerald-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}
                             >
                                 <div class="text-xs font-medium text-emerald-400 mb-1 flex items-center justify-between">
-                                    <span>Rat. Medyczne (R1)</span>
+                                    <span>Rat. Medyczne</span>
                                     <i data-lucide="cross" class="w-4 h-4"></i>
                                 </div>
                                 <div class="text-2xl font-bold text-emerald-200">{stats.medyczne}</div>
                                 <div class="text-[10px] text-slate-400 mt-1">Opiekun: Filip</div>
                             </div>
-                            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
+                            <div 
+                                onClick={() => setActiveTab('Wysokościowe')}
+                                class={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'Wysokościowe' ? 'bg-purple-950/40 border-purple-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}
+                            >
+                                <div class="text-xs font-medium text-purple-400 mb-1 flex items-center justify-between">
+                                    <span>Wysokościowe</span>
+                                    <i data-lucide="mountain" class="w-4 h-4"></i>
+                                </div>
+                                <div class="text-2xl font-bold text-purple-200">{stats.wysokosciowe}</div>
+                                <div class="text-[10px] text-slate-400 mt-1">Opiekun: Jakub</div>
+                            </div>
+                            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5">
                                 <div class="text-xs font-medium text-amber-400 mb-1 flex items-center justify-between">
                                     <span>Wygasa (≤ 30 dni)</span>
                                     <i data-lucide="clock" class="w-4 h-4"></i>
                                 </div>
                                 <div class="text-2xl font-bold text-amber-300">{stats.expiringSoon}</div>
                             </div>
-                            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4">
+                            <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5">
                                 <div class="text-xs font-medium text-red-400 mb-1 flex items-center justify-between">
                                     <span>W naprawie / Brak</span>
                                     <i data-lucide="alert-triangle" class="w-4 h-4"></i>
@@ -575,26 +620,33 @@
                         )}
 
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
-                            <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start">
+                            <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start flex-wrap gap-1">
                                 <button 
                                     onClick={() => setActiveTab('All')}
-                                    class={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'All' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                    class={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'All' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     Wszystko
                                 </button>
                                 <button 
                                     onClick={() => setActiveTab('Wodne')}
-                                    class={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'Wodne' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                    class={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Wodne' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
                                 >
-                                    <i data-lucide="waves" class="w-4 h-4"></i>
-                                    <span>Ratownictwo Wodne (Michał)</span>
+                                    <i data-lucide="waves" class="w-3.5 h-3.5"></i>
+                                    <span>Wodne (Michał)</span>
                                 </button>
                                 <button 
                                     onClick={() => setActiveTab('Medyczne')}
-                                    class={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'Medyczne' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                    class={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Medyczne' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
                                 >
-                                    <i data-lucide="cross" class="w-4 h-4"></i>
-                                    <span>Ratownictwo Medyczne (Filip)</span>
+                                    <i data-lucide="cross" class="w-3.5 h-3.5"></i>
+                                    <span>Medyczne (Filip)</span>
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('Wysokościowe')}
+                                    class={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Wysokościowe' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <i data-lucide="mountain" class="w-3.5 h-3.5"></i>
+                                    <span>Wysokościowe (Jakub)</span>
                                 </button>
                             </div>
 
@@ -706,9 +758,11 @@
                                                             <span class={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
                                                                 item.category === 'Wodne' 
                                                                     ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
-                                                                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                                                    : item.category === 'Medyczne'
+                                                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                                                    : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                                                             }`}>
-                                                                {item.category === 'Wodne' ? '🌊 Wodne' : '🚑 Medyczne'}
+                                                                {item.category === 'Wodne' ? '🌊 Wodne' : item.category === 'Medyczne' ? '🚑 Medyczne' : '🧗 Wysokościowe'}
                                                             </span>
                                                         </td>
                                                         <td class="p-4 text-slate-300">
@@ -788,7 +842,7 @@
                                             required
                                             value={formData.name}
                                             onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                            placeholder="np. Torba R1 / Deska Ortopedyczna / Silnik Honda"
+                                            placeholder="np. Torba R1 / Uprząż / Silnik Honda"
                                             class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-slate-500"
                                         />
                                     </div>
@@ -803,6 +857,7 @@
                                             >
                                                 <option value="Wodne">Ratownictwo Wodne (Michał)</option>
                                                 <option value="Medyczne">Ratownictwo Medyczne (Filip)</option>
+                                                <option value="Wysokościowe">Ratownictwo Wysokościowe (Jakub)</option>
                                             </select>
                                         </div>
 
@@ -826,7 +881,7 @@
                                                 required
                                                 value={formData.location}
                                                 onChange={(e) => setFormData({...formData, location: e.target.value})}
-                                                placeholder="np. GBA Skrytka 3 / Łódź P1"
+                                                placeholder="np. GBA Skrytka 3 / Magazyn"
                                                 class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
                                             />
                                         </div>
