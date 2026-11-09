@@ -179,10 +179,9 @@
 
                 const currentDbPassword = dbUsers[selectedUserForLogin];
 
-                // Jeśli w bazie jest jeszcze hasło startowe, sprawdzamy je i wymuszamy zmianę na nowe
                 if (currentDbPassword === '569s31') {
                     if (passwordInput !== '569s31') {
-                        setLoginError('To pierwsze logowanie! Wpisz hasło startowe: 569s31');
+                        setLoginError('Nieprawidłowe hasło startowe.');
                         return;
                     }
                     if (!newPasswordInput || newPasswordInput.length < 4) {
@@ -194,7 +193,6 @@
                         return;
                     }
 
-                    // Zapisujemy nowe hasło w bazie Firestore
                     try {
                         await db.collection("users").doc(selectedUserForLogin).update({ password: newPasswordInput });
                         setCurrentUser(selectedUserForLogin);
@@ -206,7 +204,6 @@
                         setLoginError('Błąd zapisu nowego hasła w bazie.');
                     }
                 } else {
-                    // Standardowe logowanie stałym hasłem głównym
                     if (passwordInput === currentDbPassword) {
                         setCurrentUser(selectedUserForLogin);
                         setSelectedUserForLogin(null);
@@ -452,7 +449,7 @@
                                     {isFirstLogin ? (
                                         <>
                                             <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300">
-                                                ⚠️ Pierwsze logowanie! Wpisz hasło startowe, a następnie ustaw swoje własne nowe hasło główne.
+                                                ⚠️ Pierwsze logowanie! Wpisz podane hasło startowe, a następnie ustaw swoje własne nowe hasło główne.
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Hasło startowe</label>
@@ -461,7 +458,7 @@
                                                     required 
                                                     value={passwordInput} 
                                                     onChange={(e) => setPasswordInput(e.target.value)} 
-                                                    placeholder="Wpisz 569s31" 
+                                                    placeholder="Hasło startowe" 
                                                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
                                                 />
                                             </div>
@@ -545,7 +542,6 @@
                                     </button>
                                 </div>
                             )}
-                            <p className="text-[11px] text-slate-500 mt-6">Pierwsze hasło startowe dla kont: <code className="text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">569s31</code></p>
                         </div>
                     </div>
                 );
