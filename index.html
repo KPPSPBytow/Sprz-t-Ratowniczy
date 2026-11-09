@@ -6,6 +6,10 @@
     <title>Ewidencja Sprzętu Ratowniczego - OSP / PSP</title>
     
     <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ewidencja OSP">
     
     <!-- React, ReactDOM, Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -39,7 +43,7 @@
         const { useState, useEffect, useMemo } = React;
 
         // ==========================================
-        // 🚀 KONFIGURACJA FIREBASE
+        // 🚀 KONFIGURACJA FIREBASE Z TRYBEM OFFLINE
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyCrLGk-40kQDIgY4m0vLFyHj9POkEpSNXE",
@@ -56,14 +60,36 @@
         }
         const db = firebase.firestore();
 
+        // Włączenie trwałej pamięci podręcznej Firestore (Offline Persistence)
+        db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+            if (err.code === 'failed-precondition') {
+                console.warn('Persistence włączona tylko w jednej zakładce na raz.');
+            } else if (err.code === 'unimplemented') {
+                console.warn('Przeglądarka nie obsługuje IndexedDB.');
+            }
+        });
+
         function App() {
             const [currentUser, setCurrentUser] = useState(() => {
                 return localStorage.getItem('rescue_user') || null;
             });
 
+            const [isOnline, setIsOnline] = useState(navigator.onLine);
             const [equipment, setEquipment] = useState([]);
             const [logs, setLogs] = useState([]);
             const [loadingData, setLoadingData] = useState(true);
+
+            // Śledzenie stanu sieci (Online / Offline)
+            useEffect(() => {
+                const handleOnline = () => setIsOnline(true);
+                const handleOffline = () => setIsOnline(false);
+                window.addEventListener('online', handleOnline);
+                window.addEventListener('offline', handleOffline);
+                return () => {
+                    window.removeEventListener('online', handleOnline);
+                    window.removeEventListener('offline', handleOffline);
+                };
+            }, []);
 
             // Stany do logowania, resetu i zmiany hasła
             const [selectedUserForLogin, setSelectedUserForLogin] = useState(null);
@@ -155,7 +181,7 @@
                         items.push({ idDoc: doc.id, ...doc.data() });
                     });
                     
-                    if (items.length === 0) {
+                    if (items.length === 0 && navigator.onLine) {
                         const initialData = [
                             { name: "Łódź płaskodawna z silnikiem Honda 50KM", category: "Wodne", inventoryNo: "EQUIP-WOD-001", location: "Garaż / Przyczepa P1", status: "Sprawny", expiryDate: "2026-11-20", lastInspector: "Michał", notes: "Przegląd silnika wygasa niebawem.", quantity: 1 },
                             { name: "Torba Ratownicza R1 ze stelażem", category: "Medyczne", inventoryNo: "EQUIP-MED-001", location: "Wóz GBA 2,5/16", status: "Sprawny", expiryDate: "2026-11-15", lastInspector: "Filip", notes: "Kończy się ważność opatrunków.", quantity: 1 },
@@ -206,22 +232,20 @@
                 setPinInput('');
             };
 
-            // Zapis logu do Firestore + powiadomienie na Discorda
+            // Zapis logu do Firestore + powiadomienie na Discorda (z obsługą offline)
             const logAction = async (actionType, details) => {
                 const dateString = new Date().toLocaleString('pl-PL');
                 try {
-                    // 1. Zapis do bazy danych
                     await db.collection("logs").add({
                         user: currentUser,
-                        action: actionType, // 'DODANIE', 'EDYCJA', 'USUNIĘCIE'
+                        action: actionType,
                         details: details,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                         dateStr: dateString
                     });
 
-                    // 2. Wysyłanie powiadomienia na Discorda (jeśli skonfigurowano Webhook)
-                    if (discordWebhook) {
-                        let color = 3447003; // niebieski
+                    if (discordWebhook && navigator.onLine) {
+                        let color = 3447003;
                         let emoji = '📝';
                         if (actionType === 'DODANIE') { color = 5763719; emoji = '➕'; }
                         else if (actionType === 'EDYCJA') { color = 16705300; emoji = '✏️'; }
@@ -250,6 +274,10 @@
             };
 
             const handleInitiateReset = async () => {
+                if (!isOnline) {
+                    setLoginError('Brak połączenia z siecią! Reset hasła wymaga dostępu do internetu.');
+                    return;
+                }
                 if (!discordWebhook) {
                     setLoginError('Brak skonfigurowanego Webhooka Discorda! Skontaktuj się z administratorem.');
                     return;
@@ -434,6 +462,10 @@
             };
 
             const sendDiscordNotification = async (itemsToSend = null, isAuto = false) => {
+                if (!isOnline) {
+                    setDiscordStatus({ loading: false, msg: 'Brak sieci! Wysyłanie na Discord zostanie przywrócone po złapaniu połączenia.' });
+                    return;
+                }
                 if (!discordWebhook) {
                     setDiscordStatus({ loading: false, msg: 'Ustaw najpierw link Webhooka w zakładce Discord!' });
                     setIsDiscordModalOpen(true);
@@ -828,6 +860,12 @@
 
             return (
                 <div className="pb-12">
+                    {/* Wskaźnik stanu sieci (Online / Offline) */}
+                    <div className={`px-4 py-1.5 text-center text-xs font-semibold flex items-center justify-center space-x-2 transition ${isOnline ? 'bg-emerald-950/80 text-emerald-400 border-b border-emerald-800/40' : 'bg-red-950/90 text-red-300 border-b border-red-800/50'}`}>
+                        <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`}></span>
+                        <span>{isOnline ? 'Połączono z siecią (Chmura na żywo)' : '⚠️ TRYB OFFLINE - Pracujesz na pamięci lokalnej (Baza zsynchronizuje się po odzyskaniu sieci)'}</span>
+                    </div>
+
                     {(!userPermissions.add && !userPermissions.edit && !userPermissions.delete || isGuest) && (
                         <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-300 px-4 py-2 text-center text-sm font-medium flex items-center justify-center space-x-2 no-print">
                             <i data-lucide="lock" className="w-4 h-4"></i>
@@ -843,7 +881,7 @@
                                 </div>
                                 <div>
                                     <h1 className="text-xl font-bold text-white tracking-wide">SYSTEM REJESTRU SPRZĘTU RATOWNICZEGO (CHMURA)</h1>
-                                    <p className="text-xs text-slate-400">Jednostka OSP / PSP • Synchronizacja na żywo</p>
+                                    <p className="text-xs text-slate-400">Jednostka OSP / PSP • Synchronizacja na żywo + Obsługa Offline</p>
                                 </div>
                             </div>
 
@@ -876,7 +914,7 @@
 
                     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
                         {loadingData ? (
-                            <div className="text-center py-20 text-slate-400">Ładowanie danych z bazy chmurowej...</div>
+                            <div className="text-center py-20 text-slate-400">Ładowanie danych...</div>
                         ) : (
                             <>
                                 {/* Zakładki główne: Działy + Rejestr zdarzeń */}
