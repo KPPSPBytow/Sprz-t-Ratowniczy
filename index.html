@@ -64,6 +64,12 @@
             const [equipment, setEquipment] = useState([]);
             const [loadingData, setLoadingData] = useState(true);
 
+            // Stany do logowania z hasłem
+            const [selectedUserForLogin, setSelectedUserForLogin] = useState(null);
+            const [passwordInput, setPasswordInput] = useState('');
+            const [loginError, setLoginError] = useState('');
+            const [dbUsers, setDbUsers] = useState({});
+
             const [discordWebhook, setDiscordWebhook] = useState(() => {
                 return localStorage.getItem('rescue_discord_webhook') || "";
             });
@@ -87,7 +93,33 @@
                 quantity: 1
             });
 
-            // Pobieranie danych z bazy Firebase w czasie rzeczywistym
+            // Pobieranie użytkowników i ich haseł z Firestore
+            useEffect(() => {
+                const unsubscribeUsers = db.collection("users").onSnapshot(async (snapshot) => {
+                    const usersMap = {};
+                    snapshot.forEach((doc) => {
+                        usersMap[doc.id] = doc.data().password;
+                    });
+
+                    // Jeśli w bazie nie ma jeszcze użytkowników, utwórz domyślnych z hasłem "1234"
+                    if (snapshot.empty) {
+                        const defaultUsers = {
+                            "Filip": { password: "1234" },
+                            "Michał": { password: "1234" },
+                            "Jakub": { password: "1234" }
+                        };
+                        for (const [username, data] of Object.entries(defaultUsers)) {
+                            await db.collection("users").doc(username).set(data);
+                            usersMap[username] = data.password;
+                        }
+                    }
+                    setDbUsers(usersMap);
+                });
+
+                return () => unsubscribeUsers();
+            }, []);
+
+            // Pobieranie sprzętu z bazy Firebase w czasie rzeczywistym
             useEffect(() => {
                 const unsubscribe = db.collection("equipment").onSnapshot((snapshot) => {
                     const items = [];
@@ -114,11 +146,10 @@
                 return () => unsubscribe();
             }, []);
 
-            // Zapis sesji użytkownika w pamięci przeglądarki
             useEffect(() => {
                 if (currentUser) {
                     localStorage.setItem('rescue_user', currentUser);
-                    setActiveTab('All'); // Zawsze po zalogowaniu ustawiamy zakładkę "Wszystko"
+                    setActiveTab('All');
                 } else {
                     localStorage.removeItem('rescue_user');
                 }
@@ -134,9 +165,30 @@
                 }
             });
 
+            const handleLoginSubmit = (e) => {
+                e.preventDefault();
+                setLoginError('');
+
+                if (selectedUserForLogin === 'Guest') {
+                    setCurrentUser('Guest');
+                    return;
+                }
+
+                const correctPassword = dbUsers[selectedUserForLogin];
+                if (passwordInput === correctPassword) {
+                    setCurrentUser(selectedUserForLogin);
+                    setSelectedUserForLogin(null);
+                    setPasswordInput('');
+                } else {
+                    setLoginError('Nieprawidłowe hasło! Spróbuj ponownie (domyślne hasło to: 1234).');
+                }
+            };
+
             const handleLogout = () => {
                 localStorage.removeItem('rescue_user');
                 setCurrentUser(null);
+                setSelectedUserForLogin(null);
+                setPasswordInput('');
             };
 
             const getDaysToExpiry = (dateString) => {
@@ -341,7 +393,7 @@
             };
 
             // -------------------------------------------------------------
-            // EKRAN WYBORU PROFILU / LOGOWANIA
+            // EKRAN WYBORU PROFILU I LOGOWANIA HASEŁ
             // -------------------------------------------------------------
             if (!currentUser) {
                 return (
@@ -351,41 +403,70 @@
                                 <i data-lucide="shield-alert" className="w-12 h-12"></i>
                             </div>
                             <h1 className="text-2xl font-bold text-white mb-2">Ewidencja Sprzętu Ratowniczego</h1>
-                            <p className="text-slate-400 mb-8 text-sm">Wybierz swój profil, aby przejść do systemu zarządzania</p>
+                            <p className="text-slate-400 mb-6 text-sm">Wybierz swój profil i podaj hasło</p>
                             
-                            <div className="space-y-3">
-                                <button onClick={() => setCurrentUser('Filip')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">F</div>
-                                        <div><div className="font-semibold text-white group-hover:text-emerald-400 transition text-sm">Filip</div><div className="text-xs text-slate-400">Ratownictwo Medyczne (R1)</div></div>
+                            {/* Formularz wpisywania hasła po kliknięciu użytkownika */}
+                            {selectedUserForLogin ? (
+                                <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
+                                    <div className="flex items-center justify-between bg-slate-800/60 p-3 rounded-xl border border-slate-700">
+                                        <span className="text-sm text-slate-300">Logujesz się jako: <strong className="text-white">{selectedUserForLogin}</strong></span>
+                                        <button type="button" onClick={() => { setSelectedUserForLogin(null); setPasswordInput(''); setLoginError(''); }} className="text-xs text-slate-400 hover:text-white underline">Zmień</button>
                                     </div>
-                                    <i data-lucide="chevron-right" className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition"></i>
-                                </button>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Hasło dostępu</label>
+                                        <input 
+                                            type="password" 
+                                            autoFocus 
+                                            required 
+                                            value={passwordInput} 
+                                            onChange={(e) => setPasswordInput(e.target.value)} 
+                                            placeholder="Wpisz hasło..." 
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
+                                        />
+                                    </div>
+                                    {loginError && <p className="text-xs text-red-400">{loginError}</p>}
+                                    <div className="flex space-x-2 pt-2">
+                                        <button type="button" onClick={() => { setSelectedUserForLogin(null); setPasswordInput(''); setLoginError(''); }} className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition">Anuluj</button>
+                                        <button type="submit" className="w-1/2 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition shadow-lg shadow-red-600/30">Zaloguj</button>
+                                    </div>
+                                </form>
+                            ) : (
+                                /* Lista profili do wyboru */
+                                <div className="space-y-3">
+                                    <button onClick={() => setSelectedUserForLogin('Filip')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">F</div>
+                                            <div><div className="font-semibold text-white group-hover:text-emerald-400 transition text-sm">Filip</div><div className="text-xs text-slate-400">Ratownictwo Medyczne (R1)</div></div>
+                                        </div>
+                                        <i data-lucide="lock" className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition"></i>
+                                    </button>
 
-                                <button onClick={() => setCurrentUser('Michał')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">M</div>
-                                        <div><div className="font-semibold text-white group-hover:text-cyan-400 transition text-sm">Michał</div><div className="text-xs text-slate-400">Ratownictwo Wodne</div></div>
-                                    </div>
-                                    <i data-lucide="chevron-right" className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition"></i>
-                                </button>
+                                    <button onClick={() => setSelectedUserForLogin('Michał')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">M</div>
+                                            <div><div className="font-semibold text-white group-hover:text-cyan-400 transition text-sm">Michał</div><div className="text-xs text-slate-400">Ratownictwo Wodne</div></div>
+                                        </div>
+                                        <i data-lucide="lock" className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition"></i>
+                                    </button>
 
-                                <button onClick={() => setCurrentUser('Jakub')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold">J</div>
-                                        <div><div className="font-semibold text-white group-hover:text-purple-400 transition text-sm">Jakub</div><div className="text-xs text-slate-400">Ratownictwo Wysokościowe</div></div>
-                                    </div>
-                                    <i data-lucide="chevron-right" className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition"></i>
-                                </button>
+                                    <button onClick={() => setSelectedUserForLogin('Jakub')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold">J</div>
+                                            <div><div className="font-semibold text-white group-hover:text-purple-400 transition text-sm">Jakub</div><div className="text-xs text-slate-400">Ratownictwo Wysokościowe</div></div>
+                                        </div>
+                                        <i data-lucide="lock" className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition"></i>
+                                    </button>
 
-                                <button onClick={() => setCurrentUser('Guest')} className="w-full flex items-center justify-between p-3.5 bg-slate-800/40 hover:bg-slate-800 border border-slate-800 rounded-xl transition group text-left">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">G</div>
-                                        <div><div className="font-semibold text-slate-300 group-hover:text-white transition text-sm">Gość / Obserwator</div><div className="text-xs text-amber-500/80">Podgląd bez edycji</div></div>
-                                    </div>
-                                    <i data-lucide="eye" className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition"></i>
-                                </button>
-                            </div>
+                                    <button onClick={() => { setSelectedUserForLogin('Guest'); setCurrentUser('Guest'); }} className="w-full flex items-center justify-between p-3.5 bg-slate-800/40 hover:bg-slate-800 border border-slate-800 rounded-xl transition group text-left">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">G</div>
+                                            <div><div className="font-semibold text-slate-300 group-hover:text-white transition text-sm">Gość / Obserwator</div><div className="text-xs text-amber-500/80">Podgląd bez hasła</div></div>
+                                        </div>
+                                        <i data-lucide="eye" className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition"></i>
+                                    </button>
+                                </div>
+                            )}
+                            <p className="text-[11px] text-slate-500 mt-6">Domyślne hasło dla nowych kont w bazie to: <code className="text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">1234</code></p>
                         </div>
                     </div>
                 );
