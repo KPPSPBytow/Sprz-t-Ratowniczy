@@ -278,7 +278,16 @@
             const handleEdit = (item) => {
                 if (currentUser === 'Guest') return;
                 setEditingItem(item);
-                setFormData(item);
+                setFormData({
+                    name: item.name || '',
+                    category: item.category || 'Wodne',
+                    inventoryNo: item.inventoryNo || '',
+                    location: item.location || '',
+                    status: item.status || 'Sprawny',
+                    expiryDate: item.expiryDate || '',
+                    notes: item.notes || '',
+                    quantity: item.quantity || 1
+                });
                 setIsModalOpen(true);
             };
 
@@ -335,45 +344,45 @@
 
             if (!currentUser) {
                 return (
-                    <div class="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full shadow-2xl text-center">
-                            <div class="inline-flex items-center justify-center p-4 bg-red-600/10 text-red-500 rounded-2xl mb-6">
-                                <i data-lucide="shield-alert" class="w-12 h-12"></i>
+                    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full shadow-2xl text-center">
+                            <div className="inline-flex items-center justify-center p-4 bg-red-600/10 text-red-500 rounded-2xl mb-6">
+                                <i data-lucide="shield-alert" className="w-12 h-12"></i>
                             </div>
-                            <h1 class="text-2xl font-bold text-white mb-2">Ewidencja Sprzętu Ratowniczego</h1>
-                            <p class="text-slate-400 mb-8 text-sm">Wybierz swój profil, aby przejść do systemu zarządzania</p>
+                            <h1 className="text-2xl font-bold text-white mb-2">Ewidencja Sprzętu Ratowniczego</h1>
+                            <p className="text-slate-400 mb-8 text-sm">Wybierz swój profil, aby przejść do systemu zarządzania</p>
                             
-                            <div class="space-y-3">
-                                <button onClick={() => setCurrentUser('Filip')} class="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">F</div>
-                                        <div><div class="font-semibold text-white group-hover:text-emerald-400 transition text-sm">Filip</div><div class="text-xs text-slate-400">Ratownictwo Medyczne (R1)</div></div>
+                            <div className="space-y-3">
+                                <button onClick={() => setCurrentUser('Filip')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">F</div>
+                                        <div><div className="font-semibold text-white group-hover:text-emerald-400 transition text-sm">Filip</div><div className="text-xs text-slate-400">Ratownictwo Medyczne (R1)</div></div>
                                     </div>
-                                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition"></i>
+                                    <i data-lucide="chevron-right" className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition"></i>
                                 </button>
 
-                                <button onClick={() => setCurrentUser('Michał')} class="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">M</div>
-                                        <div><div class="font-semibold text-white group-hover:text-cyan-400 transition text-sm">Michał</div><div class="text-xs text-slate-400">Ratownictwo Wodne</div></div>
+                                <button onClick={() => setCurrentUser('Michał')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">M</div>
+                                        <div><div className="font-semibold text-white group-hover:text-cyan-400 transition text-sm">Michał</div><div className="text-xs text-slate-400">Ratownictwo Wodne</div></div>
                                     </div>
-                                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition"></i>
+                                    <i data-lucide="chevron-right" className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition"></i>
                                 </button>
 
-                                <button onClick={() => setCurrentUser('Jakub')} class="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold">J</div>
-                                        <div><div class="font-semibold text-white group-hover:text-purple-400 transition text-sm">Jakub</div><div class="text-xs text-slate-400">Ratownictwo Wysokościowe</div></div>
+                                <button onClick={() => setCurrentUser('Jakub')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold">J</div>
+                                        <div><div className="font-semibold text-white group-hover:text-purple-400 transition text-sm">Jakub</div><div className="text-xs text-slate-400">Ratownictwo Wysokościowe</div></div>
                                     </div>
-                                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition"></i>
+                                    <i data-lucide="chevron-right" className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition"></i>
                                 </button>
 
-                                <button onClick={() => setCurrentUser('Guest')} class="w-full flex items-center justify-between p-3.5 bg-slate-800/40 hover:bg-slate-800 border border-slate-800 rounded-xl transition group text-left">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">G</div>
-                                        <div><div class="font-semibold text-slate-300 group-hover:text-white transition text-sm">Gość / Obserwator</div><div class="text-xs text-amber-500/80">Podgląd bez edycji</div></div>
+                                <button onClick={() => setCurrentUser('Guest')} className="w-full flex items-center justify-between p-3.5 bg-slate-800/40 hover:bg-slate-800 border border-slate-800 rounded-xl transition group text-left">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">G</div>
+                                        <div><div className="font-semibold text-slate-300 group-hover:text-white transition text-sm">Gość / Obserwator</div><div className="text-xs text-amber-500/80">Podgląd bez edycji</div></div>
                                     </div>
-                                    <i data-lucide="eye" class="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition"></i>
+                                    <i data-lucide="eye" className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition"></i>
                                 </button>
                             </div>
                         </div>
@@ -384,136 +393,136 @@
             const isGuest = currentUser === 'Guest';
 
             return (
-                <div class="pb-12">
+                <div className="pb-12">
                     {isGuest && (
-                        <div class="bg-amber-500/10 border-b border-amber-500/20 text-amber-300 px-4 py-2 text-center text-sm font-medium flex items-center justify-center space-x-2 no-print">
-                            <i data-lucide="lock" class="w-4 h-4"></i>
+                        <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-300 px-4 py-2 text-center text-sm font-medium flex items-center justify-center space-x-2 no-print">
+                            <i data-lucide="lock" className="w-4 h-4"></i>
                             <span>Tryb podglądu (Tylko odczyt) – Zalogowano jako Gość. Edycja jest zablokowana.</span>
                         </div>
                     )}
 
-                    <header class="bg-slate-950 border-b border-slate-800 sticky top-0 z-30 no-print">
-                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div class="flex items-center space-x-3">
-                                <div class="bg-red-600 p-2.5 rounded-xl text-white shadow-lg shadow-red-600/30">
-                                    <i data-lucide="shield-alert" class="w-6 h-6"></i>
+                    <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-30 no-print">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div className="flex items-center space-x-3">
+                                <div className="bg-red-600 p-2.5 rounded-xl text-white shadow-lg shadow-red-600/30">
+                                    <i data-lucide="shield-alert" className="w-6 h-6"></i>
                                 </div>
                                 <div>
-                                    <h1 class="text-xl font-bold text-white tracking-wide">SYSTEM REJESTRU SPRZĘTU RATOWNICZEGO (CHMURA)</h1>
-                                    <p class="text-xs text-slate-400">Jednostka OSP / PSP • Synchronizacja na żywo</p>
+                                    <h1 className="text-xl font-bold text-white tracking-wide">SYSTEM REJESTRU SPRZĘTU RATOWNICZEGO (CHMURA)</h1>
+                                    <p className="text-xs text-slate-400">Jednostka OSP / PSP • Synchronizacja na żywo</p>
                                 </div>
                             </div>
 
-                            <div class="flex items-center space-x-3">
-                                <div class="flex items-center bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-sm">
-                                    <span class="text-slate-400 text-xs mr-2">Zalogowany:</span>
-                                    <span class={`font-semibold ${currentUser === 'Filip' ? 'text-emerald-400' : currentUser === 'Michał' ? 'text-cyan-400' : currentUser === 'Jakub' ? 'text-purple-400' : 'text-amber-400'}`}>
+                            <div className="flex items-center space-x-3">
+                                <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-sm">
+                                    <span className="text-slate-400 text-xs mr-2">Zalogowany:</span>
+                                    <span className={`font-semibold ${currentUser === 'Filip' ? 'text-emerald-400' : currentUser === 'Michał' ? 'text-cyan-400' : currentUser === 'Jakub' ? 'text-purple-400' : 'text-amber-400'}`}>
                                         {currentUser} {isGuest && '(Obserwator)'}
                                     </span>
                                 </div>
 
-                                <button onClick={() => setIsDiscordModalOpen(true)} class="p-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 rounded-xl text-sm transition flex items-center space-x-2">
-                                    <i data-lucide="bell" class="w-4 h-4"></i>
-                                    <span class="hidden sm:inline">Discord</span>
+                                <button onClick={() => setIsDiscordModalOpen(true)} className="p-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 rounded-xl text-sm transition flex items-center space-x-2">
+                                    <i data-lucide="bell" className="w-4 h-4"></i>
+                                    <span className="hidden sm:inline">Discord</span>
                                 </button>
 
-                                <button onClick={() => setCurrentUser(null)} class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition flex items-center space-x-1" title="Wyloguj">
-                                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                                <button onClick={() => setCurrentUser(null)} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition flex items-center space-x-1" title="Wyloguj">
+                                    <i data-lucide="log-out" className="w-4 h-4"></i>
                                 </button>
                             </div>
                         </div>
                     </header>
 
-                    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
                         {loadingData ? (
-                            <div class="text-center py-20 text-slate-400">Ładowanie danych z bazy chmurowej...</div>
+                            <div className="text-center py-20 text-slate-400">Ładowanie danych z bazy chmurowej...</div>
                         ) : (
                             <>
-                                <div class="grid grid-cols-2 md:grid-cols-6 gap-3 no-print">
-                                    <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5">
-                                        <div class="text-xs font-medium text-slate-400 mb-1">Cały Sprzęt</div>
-                                        <div class="text-2xl font-bold text-white">{stats.total}</div>
+                                <div className="grid grid-cols-2 md:grid-cols-6 gap-3 no-print">
+                                    <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5">
+                                        <div className="text-xs font-medium text-slate-400 mb-1">Cały Sprzęt</div>
+                                        <div className="text-2xl font-bold text-white">{stats.total}</div>
                                     </div>
-                                    <div onClick={() => setActiveTab('Wodne')} class={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'Wodne' ? 'bg-cyan-950/40 border-cyan-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}>
-                                        <div class="text-xs font-medium text-cyan-400 mb-1 flex items-center justify-between"><span>Rat. Wodne</span><i data-lucide="waves" class="w-4 h-4"></i></div>
-                                        <div class="text-2xl font-bold text-cyan-200">{stats.wodne}</div>
-                                        <div class="text-[10px] text-slate-400 mt-1">Opiekun: Michał</div>
+                                    <div onClick={() => setActiveTab('Wodne')} className={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'Wodne' ? 'bg-cyan-950/40 border-cyan-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}>
+                                        <div className="text-xs font-medium text-cyan-400 mb-1 flex items-center justify-between"><span>Rat. Wodne</span><i data-lucide="waves" className="w-4 h-4"></i></div>
+                                        <div className="text-2xl font-bold text-cyan-200">{stats.wodne}</div>
+                                        <div className="text-[10px] text-slate-400 mt-1">Opiekun: Michał</div>
                                     </div>
-                                    <div onClick={() => setActiveTab('Medyczne')} class={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'Medyczne' ? 'bg-emerald-950/40 border-emerald-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}>
-                                        <div class="text-xs font-medium text-emerald-400 mb-1 flex items-center justify-between"><span>Rat. Medyczne</span><i data-lucide="cross" class="w-4 h-4"></i></div>
-                                        <div class="text-2xl font-bold text-emerald-200">{stats.medyczne}</div>
-                                        <div class="text-[10px] text-slate-400 mt-1">Opiekun: Filip</div>
+                                    <div onClick={() => setActiveTab('Medyczne')} className={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'Medyczne' ? 'bg-emerald-950/40 border-emerald-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}>
+                                        <div className="text-xs font-medium text-emerald-400 mb-1 flex items-center justify-between"><span>Rat. Medyczne</span><i data-lucide="cross" className="w-4 h-4"></i></div>
+                                        <div className="text-2xl font-bold text-emerald-200">{stats.medyczne}</div>
+                                        <div className="text-[10px] text-slate-400 mt-1">Opiekun: Filip</div>
                                     </div>
-                                    <div onClick={() => setActiveTab('Wysokościowe')} class={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'Wysokościowe' ? 'bg-purple-950/40 border-purple-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}>
-                                        <div class="text-xs font-medium text-purple-400 mb-1 flex items-center justify-between"><span>Wysokościowe</span><i data-lucide="mountain" class="w-4 h-4"></i></div>
-                                        <div class="text-2xl font-bold text-purple-200">{stats.wysokosciowe}</div>
-                                        <div class="text-[10px] text-slate-400 mt-1">Opiekun: Jakub</div>
+                                    <div onClick={() => setActiveTab('Wysokościowe')} className={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'Wysokościowe' ? 'bg-purple-950/40 border-purple-500/50' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}>
+                                        <div className="text-xs font-medium text-purple-400 mb-1 flex items-center justify-between"><span>Wysokościowe</span><i data-lucide="mountain" className="w-4 h-4"></i></div>
+                                        <div className="text-2xl font-bold text-purple-200">{stats.wysokosciowe}</div>
+                                        <div className="text-[10px] text-slate-400 mt-1">Opiekun: Jakub</div>
                                     </div>
-                                    <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5">
-                                        <div class="text-xs font-medium text-amber-400 mb-1 flex items-center justify-between"><span>Wygasa (≤ 30 dni)</span><i data-lucide="clock" class="w-4 h-4"></i></div>
-                                        <div class="text-2xl font-bold text-amber-300">{stats.expiringSoon}</div>
+                                    <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5">
+                                        <div className="text-xs font-medium text-amber-400 mb-1 flex items-center justify-between"><span>Wygasa (≤ 30 dni)</span><i data-lucide="clock" className="w-4 h-4"></i></div>
+                                        <div className="text-2xl font-bold text-amber-300">{stats.expiringSoon}</div>
                                     </div>
-                                    <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5">
-                                        <div class="text-xs font-medium text-red-400 mb-1 flex items-center justify-between"><span>W naprawie</span><i data-lucide="alert-triangle" class="w-4 h-4"></i></div>
-                                        <div class="text-2xl font-bold text-red-300">{stats.damaged}</div>
+                                    <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5">
+                                        <div className="text-xs font-medium text-red-400 mb-1 flex items-center justify-between"><span>W naprawie</span><i data-lucide="alert-triangle" className="w-4 h-4"></i></div>
+                                        <div className="text-2xl font-bold text-red-300">{stats.damaged}</div>
                                     </div>
                                 </div>
 
                                 {stats.expiringSoon > 0 && (
-                                    <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 no-print">
-                                        <div class="flex items-center space-x-3">
-                                            <div class="p-2 bg-amber-500/20 text-amber-400 rounded-lg"><i data-lucide="bell-ring" class="w-6 h-6"></i></div>
+                                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 no-print">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="p-2 bg-amber-500/20 text-amber-400 rounded-lg"><i data-lucide="bell-ring" className="w-6 h-6"></i></div>
                                             <div>
-                                                <div class="font-semibold text-amber-200">Uwaga! Wykryto sprzęt wymagający przeglądu/wymiany</div>
-                                                <div class="text-xs text-amber-400/80">Liczba pozycji z terminem ≤ 30 dni: {stats.expiringSoon} szt.</div>
+                                                <div className="font-semibold text-amber-200">Uwaga! Wykryto sprzęt wymagający przeglądu/wymiany</div>
+                                                <div className="text-xs text-amber-400/80">Liczba pozycji z terminem ≤ 30 dni: {stats.expiringSoon} szt.</div>
                                             </div>
                                         </div>
-                                        <button onClick={() => sendDiscordNotification()} disabled={discordStatus.loading} class="w-full md:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition flex items-center justify-center space-x-2 shadow-lg shadow-indigo-600/30 disabled:opacity-50">
-                                            <i data-lucide="send" class="w-4 h-4"></i>
+                                        <button onClick={() => sendDiscordNotification()} disabled={discordStatus.loading} className="w-full md:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition flex items-center justify-center space-x-2 shadow-lg shadow-indigo-600/30 disabled:opacity-50">
+                                            <i data-lucide="send" className="w-4 h-4"></i>
                                             <span>{discordStatus.loading ? 'Wysyłanie...' : 'Wyślij alert na Discord'}</span>
                                         </button>
                                     </div>
                                 )}
 
                                 {discordStatus.msg && (
-                                    <div class="p-3 bg-slate-800 border border-slate-700 text-slate-200 rounded-xl text-sm flex items-center justify-between no-print">
+                                    <div className="p-3 bg-slate-800 border border-slate-700 text-slate-200 rounded-xl text-sm flex items-center justify-between no-print">
                                         <span>{discordStatus.msg}</span>
-                                        <button onClick={() => setDiscordStatus({ loading: false, msg: '' })} class="text-slate-400 hover:text-white">✕</button>
+                                        <button onClick={() => setDiscordStatus({ loading: false, msg: '' })} className="text-slate-400 hover:text-white">✕</button>
                                     </div>
                                 )}
 
-                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
-                                    <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start flex-wrap gap-1">
-                                        <button onClick={() => setActiveTab('All')} class={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'All' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>Wszystko</button>
-                                        <button onClick={() => setActiveTab('Wodne')} class={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Wodne' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
-                                            <i data-lucide="waves" class="w-3.5 h-3.5"></i><span>Wodne (Michał)</span>
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+                                    <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start flex-wrap gap-1">
+                                        <button onClick={() => setActiveTab('All')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'All' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>Wszystko</button>
+                                        <button onClick={() => setActiveTab('Wodne')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Wodne' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
+                                            <i data-lucide="waves" className="w-3.5 h-3.5"></i><span>Wodne (Michał)</span>
                                         </button>
-                                        <button onClick={() => setActiveTab('Medyczne')} class={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Medyczne' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
-                                            <i data-lucide="cross" class="w-3.5 h-3.5"></i><span>Medyczne (Filip)</span>
+                                        <button onClick={() => setActiveTab('Medyczne')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Medyczne' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
+                                            <i data-lucide="cross" className="w-3.5 h-3.5"></i><span>Medyczne (Filip)</span>
                                         </button>
-                                        <button onClick={() => setActiveTab('Wysokościowe')} class={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Wysokościowe' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
-                                            <i data-lucide="mountain" class="w-3.5 h-3.5"></i><span>Wysokościowe (Jakub)</span>
+                                        <button onClick={() => setActiveTab('Wysokościowe')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Wysokościowe' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
+                                            <i data-lucide="mountain" className="w-3.5 h-3.5"></i><span>Wysokościowe (Jakub)</span>
                                         </button>
                                     </div>
 
-                                    <div class="flex items-center space-x-2">
+                                    <div className="flex items-center space-x-2">
                                         {!isGuest && (
-                                            <button onClick={openNewModal} class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition flex items-center space-x-2 shadow-lg shadow-red-600/30">
-                                                <i data-lucide="plus" class="w-4 h-4"></i><span>Dodaj sprzęt</span>
+                                            <button onClick={openNewModal} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition flex items-center space-x-2 shadow-lg shadow-red-600/30">
+                                                <i data-lucide="plus" className="w-4 h-4"></i><span>Dodaj sprzęt</span>
                                             </button>
                                         )}
-                                        <button onClick={exportToCSV} class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm transition" title="Eksport CSV"><i data-lucide="download" class="w-4 h-4"></i></button>
-                                        <button onClick={() => window.print()} class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm transition" title="Drukuj"><i data-lucide="printer" class="w-4 h-4"></i></button>
+                                        <button onClick={exportToCSV} className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm transition" title="Eksport CSV"><i data-lucide="download" className="w-4 h-4"></i></button>
+                                        <button onClick={() => window.print()} className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm transition" title="Drukuj"><i data-lucide="printer" className="w-4 h-4"></i></button>
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 no-print">
-                                    <div class="relative md:col-span-2">
-                                        <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500"></i>
-                                        <input type="text" placeholder="Szukaj po nazwie, numerze inwentarzowym lub lokalizacji..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500" />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 no-print">
+                                    <div className="relative md:col-span-2">
+                                        <i data-lucide="search" className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500"></i>
+                                        <input type="text" placeholder="Szukaj po nazwie, numerze inwentarzowym lub lokalizacji..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500" />
                                     </div>
                                     <div>
-                                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} class="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500">
+                                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500">
                                             <option value="All">Wszystkie stany techniczne</option>
                                             <option value="Sprawny">Sprawny</option>
                                             <option value="W naprawie">W naprawie / Serwis</option>
@@ -522,29 +531,29 @@
                                     </div>
                                 </div>
 
-                                <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                                    <div class="print-only p-6 border-b border-slate-300">
-                                        <h1 class="text-2xl font-bold text-black">PROTOKÓŁ KONTROLI I EWIDENCJI SPRZĘTU RATOWNICZEGO</h1>
-                                        <p class="text-sm text-gray-600">Dział: {activeTab === 'All' ? 'Wszystkie Działy' : activeTab} • Data: {new Date().toLocaleDateString('pl-PL')}</p>
+                                <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                                    <div className="print-only p-6 border-b border-slate-300">
+                                        <h1 className="text-2xl font-bold text-black">PROTOKÓŁ KONTROLI I EWIDENCJI SPRZĘTU RATOWNICZEGO</h1>
+                                        <p className="text-sm text-gray-600">Dział: {activeTab === 'All' ? 'Wszystkie Działy' : activeTab} • Data: {new Date().toLocaleDateString('pl-PL')}</p>
                                     </div>
 
-                                    <div class="overflow-x-auto">
-                                        <table class="w-full text-left border-collapse">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
                                             <thead>
-                                                <tr class="bg-slate-950/60 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                                    <th class="p-4">Sprzęt & Nr Inwentarzowy</th>
-                                                    <th class="p-4">Dział</th>
-                                                    <th class="p-4">Lokalizacja</th>
-                                                    <th class="p-4">Stan</th>
-                                                    <th class="p-4">Ważność / Przegląd</th>
-                                                    <th class="p-4">Opiekun</th>
-                                                    <th class="p-4 text-center">Ilość</th>
-                                                    {!isGuest && <th class="p-4 text-right no-print">Akcje</th>}
+                                                <tr className="bg-slate-950/60 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                                    <th className="p-4">Sprzęt & Nr Inwentarzowy</th>
+                                                    <th className="p-4">Dział</th>
+                                                    <th className="p-4">Lokalizacja</th>
+                                                    <th className="p-4">Stan</th>
+                                                    <th className="p-4">Ważność / Przegląd</th>
+                                                    <th className="p-4">Opiekun</th>
+                                                    <th className="p-4 text-center">Ilość</th>
+                                                    {!isGuest && <th className="p-4 text-right no-print">Akcje</th>}
                                                 </tr>
                                             </thead>
-                                            <tbody class="divide-y divide-slate-800/60 text-sm">
+                                            <tbody className="divide-y divide-slate-800/60 text-sm">
                                                 {filteredEquipment.length === 0 ? (
-                                                    <tr><td colSpan={isGuest ? 7 : 8} class="p-8 text-center text-slate-500">Brak sprzętu spełniającego wybrane kryteria.</td></tr>
+                                                    <tr><td colSpan={isGuest ? 7 : 8} className="p-8 text-center text-slate-500">Brak sprzętu spełniającego wybrane kryteria.</td></tr>
                                                 ) : (
                                                     filteredEquipment.map(item => {
                                                         const daysToExp = getDaysToExpiry(item.expiryDate);
@@ -556,39 +565,39 @@
                                                         }
 
                                                         return (
-                                                            <tr key={item.idDoc} class="hover:bg-slate-800/40 transition">
-                                                                <td class="p-4">
-                                                                    <div class="font-semibold text-white">{item.name}</div>
-                                                                    <div class="text-xs text-slate-400 font-mono mt-0.5">{item.inventoryNo}</div>
-                                                                    {item.notes && <div class="text-xs text-slate-500 italic mt-1">{item.notes}</div>}
+                                                            <tr key={item.idDoc} className="hover:bg-slate-800/40 transition">
+                                                                <td className="p-4">
+                                                                    <div className="font-semibold text-white">{item.name}</div>
+                                                                    <div className="text-xs text-slate-400 font-mono mt-0.5">{item.inventoryNo}</div>
+                                                                    {item.notes && <div className="text-xs text-slate-500 italic mt-1">{item.notes}</div>}
                                                                 </td>
-                                                                <td class="p-4">
-                                                                    <span class={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${item.category === 'Wodne' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : item.category === 'Medyczne' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'}`}>
+                                                                <td className="p-4">
+                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${item.category === 'Wodne' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : item.category === 'Medyczne' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'}`}>
                                                                         {item.category === 'Wodne' ? '🌊 Wodne' : item.category === 'Medyczne' ? '🚑 Medyczne' : '🧗 Wysokościowe'}
                                                                     </span>
                                                                 </td>
-                                                                <td class="p-4 text-slate-300">
-                                                                    <div class="flex items-center space-x-1.5"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-500"></i><span>{item.location}</span></div>
+                                                                <td className="p-4 text-slate-300">
+                                                                    <div className="flex items-center space-x-1.5"><i data-lucide="map-pin" className="w-3.5 h-3.5 text-slate-500"></i><span>{item.location}</span></div>
                                                                 </td>
-                                                                <td class="p-4">
-                                                                    <span class={`px-2.5 py-1 rounded-full text-xs font-semibold ${item.status === 'Sprawny' ? 'bg-emerald-500/10 text-emerald-400' : item.status === 'W naprawie' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'}`}>{item.status}</span>
+                                                                <td className="p-4">
+                                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${item.status === 'Sprawny' ? 'bg-emerald-500/10 text-emerald-400' : item.status === 'W naprawie' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'}`}>{item.status}</span>
                                                                 </td>
-                                                                <td class="p-4">
-                                                                    <div class="flex flex-col">
-                                                                        <span class="text-xs font-mono">{item.expiryDate || 'Brak daty'}</span>
+                                                                <td className="p-4">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-xs font-mono">{item.expiryDate || 'Brak daty'}</span>
                                                                         {daysToExp !== null && (
-                                                                            <span class={`text-[10px] px-1.5 py-0.5 rounded mt-1 self-start font-medium ${expBadgeClass}`}>
+                                                                            <span className={`text-[10px] px-1.5 py-0.5 rounded mt-1 self-start font-medium ${expBadgeClass}`}>
                                                                                 {daysToExp < 0 ? `Wygasło ${Math.abs(daysToExp)} dni temu` : `Pozostało ${daysToExp} dni`}
                                                                             </span>
                                                                         )}
                                                                     </div>
                                                                 </td>
-                                                                <td class="p-4 text-xs text-slate-400"><span class="font-medium text-slate-300">{item.lastInspector || '-'}</span></td>
-                                                                <td class="p-4 text-center font-semibold text-slate-200">{item.quantity}</td>
+                                                                <td className="p-4 text-xs text-slate-400"><span className="font-medium text-slate-300">{item.lastInspector || '-'}</span></td>
+                                                                <td className="p-4 text-center font-semibold text-slate-200">{item.quantity}</td>
                                                                 {!isGuest && (
-                                                                    <td class="p-4 text-right space-x-2 no-print">
-                                                                        <button onClick={() => handleEdit(item)} class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Edytuj"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                                                                        <button onClick={() => handleDelete(item.idDoc)} class="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition" title="Usuń"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                                                    <td className="p-4 text-right space-x-2 no-print">
+                                                                        <button onClick={() => handleEdit(item)} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Edytuj"><i data-lucide="edit-3" className="w-4 h-4"></i></button>
+                                                                        <button onClick={() => handleDelete(item.idDoc)} className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition" title="Usuń"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
                                                                     </td>
                                                                 )}
                                                             </tr>
@@ -604,62 +613,62 @@
                     </main>
 
                     {isModalOpen && !isGuest && (
-                        <div class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-                            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
-                                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                                    <h3 class="text-lg font-bold text-white">{editingItem ? 'Edycja Przedmiotu' : 'Dodaj Nowy Sprzęt do Ewidencji'}</h3>
-                                    <button onClick={closeModal} class="text-slate-400 hover:text-white">✕</button>
+                        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+                                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                                    <h3 className="text-lg font-bold text-white">{editingItem ? 'Edycja Przedmiotu' : 'Dodaj Nowy Sprzęt do Ewidencji'}</h3>
+                                    <button onClick={closeModal} className="text-slate-400 hover:text-white">✕</button>
                                 </div>
-                                <form onSubmit={handleSaveItem} class="space-y-4">
+                                <form onSubmit={handleSaveItem} className="space-y-4">
                                     <div>
-                                        <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Nazwa sprzętu</label>
-                                        <input type="text" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="np. Płetwy / Torba R1" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
+                                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Nazwa sprzętu</label>
+                                        <input type="text" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="np. Płetwy / Torba R1" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Dział / Kategoria</label>
-                                            <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Dział / Kategoria</label>
+                                            <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
                                                 <option value="Wodne">Ratownictwo Wodne (Michał)</option>
                                                 <option value="Medyczne">Ratownictwo Medyczne (Filip)</option>
                                                 <option value="Wysokościowe">Ratownictwo Wysokościowe (Jakub)</option>
                                             </select>
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Nr Inwentarzowy</label>
-                                            <input type="text" required value={formData.inventoryNo} onChange={(e) => setFormData({...formData, inventoryNo: e.target.value})} class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Nr Inwentarzowy</label>
+                                            <input type="text" required value={formData.inventoryNo} onChange={(e) => setFormData({...formData, inventoryNo: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Lokalizacja</label>
-                                            <input type="text" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} placeholder="np. Łódź P1 / GBA Skrytka" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Lokalizacja</label>
+                                            <input type="text" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} placeholder="np. Łódź P1 / GBA Skrytka" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Ilość (szt.)</label>
-                                            <input type="number" min="1" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 1})} class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Ilość (szt.)</label>
+                                            <input type="number" min="1" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 1})} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Stan Techniczny</label>
-                                            <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Stan Techniczny</label>
+                                            <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
                                                 <option value="Sprawny">Sprawny</option>
                                                 <option value="W naprawie">W naprawie / Serwis</option>
                                                 <option value="Wybrakiwany">Wybrakiwany / Uszkodzony</option>
                                             </select>
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Data Ważności / Przeglądu</label>
-                                            <input type="date" value={formData.expiryDate} onChange={(e) => setFormData({...formData, expiryDate: e.target.value})} class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
+                                            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Data Ważności / Przeglądu</label>
+                                            <input type="date" value={formData.expiryDate} onChange={(e) => setFormData({...formData, expiryDate: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" />
                                         </div>
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Uwagi</label>
-                                        <textarea rows="2" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"></textarea>
+                                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Uwagi</label>
+                                        <textarea rows="2" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"></textarea>
                                     </div>
-                                    <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
-                                        <button type="button" onClick={closeModal} class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm">Anuluj</button>
-                                        <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-600/30">Zapisz sprzęt</button>
+                                    <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
+                                        <button type="button" onClick={closeModal} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm">Anuluj</button>
+                                        <button type="submit" className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-600/30">Zapisz sprzęt</button>
                                     </div>
                                 </form>
                             </div>
@@ -667,22 +676,22 @@
                     )}
 
                     {isDiscordModalOpen && (
-                        <div class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-                            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-                                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                                    <div class="flex items-center space-x-2"><i data-lucide="bell" class="w-5 h-5 text-indigo-400"></i><h3 class="text-lg font-bold text-white">Discord Webhook</h3></div>
-                                    <button onClick={() => setIsDiscordModalOpen(false)} class="text-slate-400 hover:text-white">✕</button>
+                        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+                                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                                    <div className="flex items-center space-x-2"><i data-lucide="bell" className="w-5 h-5 text-indigo-400"></i><h3 className="text-lg font-bold text-white">Discord Webhook</h3></div>
+                                    <button onClick={() => setIsDiscordModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
                                 </div>
-                                <div class="space-y-3 text-sm text-slate-300">
+                                <div className="space-y-3 text-sm text-slate-300">
                                     <p>Wklej adres URL Webhooka z Waszego serwera Discord:</p>
                                     <div>
-                                        <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">URL Webhooka</label>
-                                        <input type="text" value={discordWebhook} onChange={(e) => setDiscordWebhook(e.target.value)} placeholder="https://discord.com/api/webhooks/..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500" />
+                                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">URL Webhooka</label>
+                                        <input type="text" value={discordWebhook} onChange={(e) => setDiscordWebhook(e.target.value)} placeholder="https://discord.com/api/webhooks/..." className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500" />
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-between pt-3 border-t border-slate-800">
-                                    <button type="button" onClick={() => sendDiscordNotification()} disabled={discordStatus.loading || !discordWebhook} class="px-3 py-2 bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-medium disabled:opacity-50">Testuj powiadomienie</button>
-                                    <button type="button" onClick={() => setIsDiscordModalOpen(false)} class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold">Zapisz i Zamknij</button>
+                                <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                                    <button type="button" onClick={() => sendDiscordNotification()} disabled={discordStatus.loading || !discordWebhook} className="px-3 py-2 bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-medium disabled:opacity-50">Testuj powiadomienie</button>
+                                    <button type="button" onClick={() => setIsDiscordModalOpen(false)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold">Zapisz i Zamknij</button>
                                 </div>
                             </div>
                         </div>
