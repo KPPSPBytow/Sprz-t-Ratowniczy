@@ -73,6 +73,10 @@
             const [loginError, setLoginError] = useState('');
             const [dbUsers, setDbUsers] = useState({});
 
+            // Stan do dodawania nowego profilu
+            const [newProfileName, setNewProfileName] = useState('');
+            const [isAddingProfile, setIsAddingProfile] = useState(false);
+
             const [discordWebhook, setDiscordWebhook] = useState(() => {
                 return localStorage.getItem('rescue_discord_webhook') || "";
             });
@@ -174,6 +178,34 @@
                 setNewPasswordInput('');
                 setConfirmPasswordInput('');
                 setLoginError('');
+                setIsAddingProfile(false);
+                setNewProfileName('');
+            };
+
+            const handleCreateNewProfile = async (e) => {
+                e.preventDefault();
+                setLoginError();
+                const trimmedName = newProfileName.trim();
+                
+                if (!trimmedName) {
+                    setLoginError('Wpisz nazwę profilu.');
+                    return;
+                }
+                if (dbUsers[trimmedName]) {
+                    setLoginError('Taki profil już istnieje w systemie!');
+                    return;
+                }
+
+                try {
+                    // Tworzymy nowy profil w bazie z hasłem startowym 569s31
+                    await db.collection("users").doc(trimmedName).set({ password: "569s31" });
+                    setSelectedUserForLogin(trimmedName);
+                    setIsAddingProfile(false);
+                    setNewProfileName('');
+                    setPasswordInput('');
+                } catch (err) {
+                    setLoginError('Błąd tworzenia profilu w bazie.');
+                }
             };
 
             const handleLoginSubmit = async (e) => {
@@ -341,13 +373,14 @@
                 e.preventDefault();
                 if (currentUser === 'Guest') return;
 
-                let correctInspector = 'Filip';
+                let correctInspector = currentUser;
                 if (formData.category === 'Wodne') correctInspector = 'Michał';
+                else if (formData.category === 'Medyczne') correctInspector = 'Filip';
                 else if (formData.category === 'Wysokościowe') correctInspector = 'Jakub';
 
                 const dataToSave = {
                     ...formData,
-                    lastInspector: correctInspector
+                    lastInspector: currentUser
                 };
 
                 if (editingItem) {
@@ -514,31 +547,48 @@
                                         <button type="submit" className="w-1/2 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition shadow-lg shadow-red-600/30">{showResetOrFirstFields ? 'Zapisz i Zaloguj' : 'Zaloguj'}</button>
                                     </div>
                                 </form>
+                            ) : isAddingProfile ? (
+                                <form onSubmit={handleCreateNewProfile} className="space-y-4 text-left">
+                                    <div className="flex items-center justify-between bg-slate-800/60 p-3 rounded-xl border border-slate-700">
+                                        <span className="text-sm text-white font-semibold">Dodawanie nowego profilu</span>
+                                        <button type="button" onClick={() => { setIsAddingProfile(false); setLoginError(''); }} className="text-xs text-slate-400 hover:text-white underline">Wróć</button>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Imię / Stopień i Nazwisko (np. Naczelnik Jan)</label>
+                                        <input 
+                                            type="text" 
+                                            autoFocus 
+                                            required 
+                                            value={newProfileName} 
+                                            onChange={(e) => setNewProfileName(e.target.value)} 
+                                            placeholder="Wpisz nazwę profilu..." 
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
+                                        />
+                                    </div>
+                                    <div className="text-[11px] text-slate-400">
+                                        ℹ️ Nowy profil otrzyma hasło startowe, które trzeba będzie zmienić przy pierwszym logowaniu.
+                                    </div>
+                                    {loginError && <p className="text-xs text-red-400">{loginError}</p>}
+                                    <div className="flex space-x-2 pt-2">
+                                        <button type="button" onClick={() => { setIsAddingProfile(false); setLoginError(''); }} className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition">Anuluj</button>
+                                        <button type="submit" className="w-1/2 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition shadow-lg shadow-red-600/30">Utwórz profil</button>
+                                    </div>
+                                </form>
                             ) : (
                                 <div className="space-y-3">
-                                    <button onClick={() => setSelectedUserForLogin('Filip')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">F</div>
-                                            <div><div className="font-semibold text-white group-hover:text-emerald-400 transition text-sm">Filip</div><div className="text-xs text-slate-400">Ratownictwo Medyczne (R1)</div></div>
-                                        </div>
-                                        <i data-lucide="lock" className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition"></i>
-                                    </button>
-
-                                    <button onClick={() => setSelectedUserForLogin('Michał')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">M</div>
-                                            <div><div className="font-semibold text-white group-hover:text-cyan-400 transition text-sm">Michał</div><div className="text-xs text-slate-400">Ratownictwo Wodne</div></div>
-                                        </div>
-                                        <i data-lucide="lock" className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition"></i>
-                                    </button>
-
-                                    <button onClick={() => setSelectedUserForLogin('Jakub')} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold">J</div>
-                                            <div><div className="font-semibold text-white group-hover:text-purple-400 transition text-sm">Jakub</div><div className="text-xs text-slate-400">Ratownictwo Wysokościowe</div></div>
-                                        </div>
-                                        <i data-lucide="lock" className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition"></i>
-                                    </button>
+                                    {/* Dynamiczna lista wszystkich profili z bazy */}
+                                    {Object.keys(dbUsers).map((username) => {
+                                        const initialLetter = username.charAt(0).toUpperCase();
+                                        return (
+                                            <button key={username} onClick={() => setSelectedUserForLogin(username)} className="w-full flex items-center justify-between p-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition group text-left">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="w-9 h-9 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center font-bold">{initialLetter}</div>
+                                                    <div><div className="font-semibold text-white group-hover:text-red-400 transition text-sm">{username}</div><div className="text-xs text-slate-400">Profil uprawniony do edycji</div></div>
+                                                </div>
+                                                <i data-lucide="lock" className="w-4 h-4 text-slate-500 group-hover:text-red-400 transition"></i>
+                                            </button>
+                                        );
+                                    })}
 
                                     <button onClick={() => { setSelectedUserForLogin('Guest'); setCurrentUser('Guest'); }} className="w-full flex items-center justify-between p-3.5 bg-slate-800/40 hover:bg-slate-800 border border-slate-800 rounded-xl transition group text-left">
                                         <div className="flex items-center space-x-3">
@@ -546,6 +596,12 @@
                                             <div><div className="font-semibold text-slate-300 group-hover:text-white transition text-sm">Gość / Obserwator</div><div className="text-xs text-amber-500/80">Podgląd bez hasła</div></div>
                                         </div>
                                         <i data-lucide="eye" className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition"></i>
+                                    </button>
+
+                                    {/* Przycisk dodawania nowego profilu */}
+                                    <button onClick={() => { setIsAddingProfile(true); setLoginError(''); }} className="w-full py-2.5 bg-slate-800/20 hover:bg-slate-800/60 border border-dashed border-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-medium transition flex items-center justify-center space-x-2 mt-2">
+                                        <i data-lucide="user-plus" className="w-4 h-4"></i>
+                                        <span>+ Utwórz własny profil (np. Naczelnik)</span>
                                     </button>
                                 </div>
                             )}
@@ -580,7 +636,7 @@
                             <div className="flex items-center space-x-3">
                                 <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-sm">
                                     <span className="text-slate-400 text-xs mr-2">Zalogowany:</span>
-                                    <span className={`font-semibold ${currentUser === 'Filip' ? 'text-emerald-400' : currentUser === 'Michał' ? 'text-cyan-400' : currentUser === 'Jakub' ? 'text-purple-400' : 'text-amber-400'}`}>
+                                    <span className="font-semibold text-red-400">
                                         {currentUser} {isGuest && '(Obserwator)'}
                                     </span>
                                 </div>
