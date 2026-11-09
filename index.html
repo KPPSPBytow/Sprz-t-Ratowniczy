@@ -863,7 +863,7 @@
                     {/* Wskaźnik stanu sieci (Online / Offline) */}
                     <div className={`px-4 py-1.5 text-center text-xs font-semibold flex items-center justify-center space-x-2 transition ${isOnline ? 'bg-emerald-950/80 text-emerald-400 border-b border-emerald-800/40' : 'bg-red-950/90 text-red-300 border-b border-red-800/50'}`}>
                         <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`}></span>
-                        <span>{isOnline ? 'Połączono z siecią (Chmura na żywo)' : '⚠️ TRYB OFFLINE - Pracujesz na pamięci lokalnej (Baza zsynchronizuje się po odzyskaniu sieci)'}</span>
+                        <span>{isOnline ? 'Połączono z siecią' : '⚠️ TRYB OFFLINE - Pracujesz na pamięci lokalnej (Baza zsynchronizuje się po odzyskaniu sieci)'}</span>
                     </div>
 
                     {(!userPermissions.add && !userPermissions.edit && !userPermissions.delete || isGuest) && (
@@ -880,7 +880,7 @@
                                     <i data-lucide="shield-alert" className="w-6 h-6"></i>
                                 </div>
                                 <div>
-                                    <h1 className="text-xl font-bold text-white tracking-wide">SYSTEM REJESTRU SPRZĘTU RATOWNICZEGO (CHMURA)</h1>
+                                    <h1 className="text-xl font-bold text-white tracking-wide">SYSTEM REJESTRU SPRZĘTU RATOWNICZEGO</h1>
                                     <p className="text-xs text-slate-400">Jednostka OSP / PSP • Synchronizacja na żywo + Obsługa Offline</p>
                                 </div>
                             </div>
