@@ -115,6 +115,7 @@
                 return () => unsubscribe();
             }, []);
 
+            // Obsługa zapisu/czyszczenia użytkownika w localStorage
             useEffect(() => {
                 if (currentUser) {
                     localStorage.setItem('rescue_user', currentUser);
@@ -127,18 +128,16 @@
                 localStorage.setItem('rescue_discord_webhook', discordWebhook);
             }, [discordWebhook]);
 
-            // Po zmianie konta lub zalogowaniu zawsze ustawiamy zakładkę "Wszystko"
-            useEffect(() => {
-                if (currentUser) {
-                    setActiveTab('All');
-                }
-            }, [currentUser]);
-
             useEffect(() => {
                 if (window.lucide) {
                     window.lucide.createIcons();
                 }
             });
+
+            const handleLogout = () => {
+                localStorage.removeItem('rescue_user');
+                setCurrentUser(null);
+            };
 
             const getDaysToExpiry = (dateString) => {
                 if (!dateString) return null;
@@ -257,7 +256,6 @@
                 e.preventDefault();
                 if (currentUser === 'Guest') return;
 
-                // Automatyczne przypisanie właściwego opiekuna na podstawie wybranego działu
                 let correctInspector = 'Filip';
                 if (formData.category === 'Wodne') correctInspector = 'Michał';
                 else if (formData.category === 'Wysokościowe') correctInspector = 'Jakub';
@@ -426,7 +424,7 @@
                                     <span className="hidden sm:inline">Discord</span>
                                 </button>
 
-                                <button onClick={() => setCurrentUser(null)} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition flex items-center space-x-1" title="Wyloguj">
+                                <button onClick={handleLogout} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition flex items-center space-x-1" title="Wyloguj">
                                     <i data-lucide="log-out" className="w-4 h-4"></i>
                                 </button>
                             </div>
