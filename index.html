@@ -70,9 +70,8 @@
         });
 
         function App() {
-            const [currentUser, setCurrentUser] = useState(() => {
-                return localStorage.getItem('rescue_user') || null;
-            });
+            // Wymuszenie logowania od zera przy każdym wejściu / restarcie strony
+            const [currentUser, setCurrentUser] = useState(null);
 
             const [isOnline, setIsOnline] = useState(navigator.onLine);
             const [equipment, setEquipment] = useState([]);
@@ -199,15 +198,6 @@
 
                 return () => unsubscribe();
             }, []);
-
-            useEffect(() => {
-                if (currentUser) {
-                    localStorage.setItem('rescue_user', currentUser);
-                    if (activeTab !== 'Logs') setActiveTab('All');
-                } else {
-                    localStorage.removeItem('rescue_user');
-                }
-            }, [currentUser]);
 
             useEffect(() => {
                 localStorage.setItem('rescue_discord_webhook', discordWebhook);
@@ -416,7 +406,6 @@
             };
 
             const handleLogout = () => {
-                localStorage.removeItem('rescue_user');
                 setCurrentUser(null);
                 resetFormState();
             };
@@ -514,7 +503,7 @@
                         color: 15158332,
                         fields: fields,
                         footer: {
-                            text: `Jednostka OSP • Raport z dnia ${new Date().toLocaleDateString('pl-PL')}`
+                            text: `OSP Racibórz-Markowice • Raport z dnia ${new Date().toLocaleDateString('pl-PL')}`
                         }
                     }]
                 };
@@ -663,7 +652,7 @@
                                 <i data-lucide="shield-alert" className="w-12 h-12"></i>
                             </div>
                             <h1 className="text-2xl font-bold text-white mb-2">Ewidencja Sprzętu Ratowniczego</h1>
-                            <p className="text-slate-400 mb-6 text-sm">Wybierz swój profil i podaj hasło</p>
+                            <p className="text-slate-400 mb-6 text-sm">OSP Racibórz-Markowice</p>
                             
                             {selectedUserForLogin ? (
                                 <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
@@ -860,12 +849,6 @@
 
             return (
                 <div className="pb-12">
-                    {/* Wskaźnik stanu sieci (Online / Offline) */}
-                    <div className={`px-4 py-1.5 text-center text-xs font-semibold flex items-center justify-center space-x-2 transition ${isOnline ? 'bg-emerald-950/80 text-emerald-400 border-b border-emerald-800/40' : 'bg-red-950/90 text-red-300 border-b border-red-800/50'}`}>
-                        <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`}></span>
-                        <span>{isOnline ? 'Połączono z siecią' : '⚠️ TRYB OFFLINE - Pracujesz na pamięci lokalnej (Baza zsynchronizuje się po odzyskaniu sieci)'}</span>
-                    </div>
-
                     {(!userPermissions.add && !userPermissions.edit && !userPermissions.delete || isGuest) && (
                         <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-300 px-4 py-2 text-center text-sm font-medium flex items-center justify-center space-x-2 no-print">
                             <i data-lucide="lock" className="w-4 h-4"></i>
@@ -886,6 +869,15 @@
                             </div>
 
                             <div className="flex items-center space-x-3">
+                                {/* Dyskretny wskaźnik stanu sieci w prawym rogu (ukryty przy druku) */}
+                                <div 
+                                    className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition ${isOnline ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400' : 'bg-red-950/40 border-red-500/30 text-red-300'}`}
+                                    title={isOnline ? 'Połączono z siecią (Chmura aktywna)' : 'Tryb Offline - dane zapisane lokalnie, zsynchronizują się po powrocie sieci'}
+                                >
+                                    <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`}></span>
+                                    <span className="hidden sm:inline">{isOnline ? 'Online' : 'Offline'}</span>
+                                </div>
+
                                 <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-sm">
                                     <span className="text-slate-400 text-xs mr-2">Zalogowany:</span>
                                     <span className="font-semibold text-red-400">
@@ -1068,7 +1060,7 @@
                                         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
                                             <div className="print-only p-6 border-b border-slate-300">
                                                 <h1 className="text-2xl font-bold text-black">PROTOKÓŁ KONTROLI I EWIDENCJI SPRZĘTU RATOWNICZEGO</h1>
-                                                <p className="text-sm text-gray-600">Dział: {activeTab === 'All' ? 'Wszystkie Działy' : activeTab} • Data: {new Date().toLocaleDateString('pl-PL')}</p>
+                                                <p className="text-sm text-gray-600">Jednostka: OSP Racibórz-Markowice • Dział: {activeTab === 'All' ? 'Wszystkie Działy' : activeTab} • Data: {new Date().toLocaleDateString('pl-PL')}</p>
                                             </div>
 
                                             <div className="overflow-x-auto">
