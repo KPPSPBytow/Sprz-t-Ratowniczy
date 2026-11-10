@@ -87,8 +87,9 @@
                 border-bottom: 2px solid black !important;
             }
 
-            .badge-print {
+            .badge-print, .print-badge-clean {
                 background: none !important;
+                background-color: transparent !important;
                 border: none !important;
                 padding: 0 !important;
                 font-weight: bold !important;
@@ -992,7 +993,7 @@
                                         <input type="text" placeholder="Szukaj po nazwie, numerze inwentarzowym lub lokalizacji..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500" />
                                     </div>
                                     <div>
-                                        <select value={statusFilter} onChange={(e) => setSearchTerm ? setSearchTerm(searchTerm) : null || setStatusFilter(e.target.value)} className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500">
+                                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500">
                                             <option value="All">Wszystkie stany techniczne</option>
                                             <option value="Sprawny">Sprawny</option>
                                             <option value="W naprawie">W naprawie</option>
@@ -1140,7 +1141,7 @@
                                                                         <div className="flex flex-col">
                                                                             <span className="text-xs font-mono print:text-black print:font-bold">{item.expiryDate || 'Brak daty'}</span>
                                                                             {daysToExp !== null && (
-                                                                                <span className={`text-[10px] mt-1 font-semibold px-2 py-0.5 rounded border max-w-max print:border-none print:p-0 print:text-black ${daysToExp < 0 ? 'bg-red-500/10 text-red-400 border-red-500/30' : daysToExp <= 30 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                                                                <span className={`text-[10px] mt-1 font-semibold px-2 py-0.5 rounded border max-w-max print-badge-clean ${daysToExp < 0 ? 'bg-red-500/10 text-red-400 border-red-500/30' : daysToExp <= 30 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                                                                                     {daysToExp < 0 ? `⚠️ Wygasło ${Math.abs(daysToExp)} dni temu` : `⏱️ Pozostało ${daysToExp} dni`}
                                                                                 </span>
                                                                             )}
