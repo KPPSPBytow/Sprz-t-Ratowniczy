@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Ewidencja OSP">
     
-    <!-- Dynamiczny Manifest PWA wygenerowany w locie -->
+    <!-- Dynamiczny Manifest PWA -->
     <link rel="manifest" id="pwa-manifest">
 
     <!-- React, ReactDOM, Babel -->
@@ -70,9 +70,8 @@
 
     <div id="root"></div>
 
-    <!-- SKRYPT GENERUJĄCY MANIFEST PWA I REGISTROWANIE SERVICE WORKERA -->
+    <!-- PWA MANIFEST I SERVICE WORKER -->
     <script>
-        // 1. Tworzenie manifestu PWA w pamięci przeglądarki
         const manifestData = {
             "name": "Ewidencja Sprzętu Ratowniczego OSP",
             "short_name": "Ewidencja OSP",
@@ -96,7 +95,6 @@
         const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
         document.getElementById('pwa-manifest').setAttribute('href', URL.createObjectURL(manifestBlob));
 
-        // 2. Rejestracja Service Workera do zapisu plików w pamięci podręcznej (Cache)
         if ('serviceWorker' in navigator) {
             const swCode = `
                 const CACHE_NAME = 'osp-equipment-v1';
@@ -113,9 +111,7 @@
 
                 self.addEventListener('install', (event) => {
                     event.waitUntil(
-                        caches.open(CACHE_NAME).then((cache) => {
-                            return cache.addAll(ASSETS);
-                        }).then(() => self.skipWaiting())
+                        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
                     );
                 });
 
@@ -142,29 +138,21 @@
                                 }).catch(() => {});
                                 return cachedResponse;
                             }
-                            return fetch(event.request).catch(() => {
-                                return new Response('Brak połączenia z siecią.', { status: 503, statusText: 'Offline' });
-                            });
+                            return fetch(event.request).catch(() => new Response('Brak połączenia z siecią.', { status: 503 }));
                         })
                     );
                 });
             `;
             const blob = new Blob([swCode], { type: 'application/javascript' });
             const swUrl = URL.createObjectURL(blob);
-            
-            navigator.serviceWorker.register(swUrl).then(() => {
-                console.log('PWA Service Worker zarejestrowany pomyślnie!');
-            }).catch(err => console.error('Błąd rejestracji Service Workera:', err));
+            navigator.serviceWorker.register(swUrl).catch(err => console.error('SW Error:', err));
         }
     </script>
 
-    <!-- GŁÓWNY KOD APLIKACJI REACT -->
+    <!-- KOD REACT -->
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // ==========================================
-        // 🚀 KONFIGURACJA FIREBASE Z TRYBEM OFFLINE
-        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyCrLGk-40kQDIgY4m0vLFyHj9POkEpSNXE",
             authDomain: "sprzetratowniczy-a2fc7.firebaseapp.com",
@@ -181,11 +169,8 @@
         const db = firebase.firestore();
 
         db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
-            if (err.code === 'failed-precondition') {
-                console.warn('Persistence włączona tylko w jednej zakładce na raz.');
-            } else if (err.code === 'unimplemented') {
-                console.warn('Przeglądarka nie obsługuje IndexedDB.');
-            }
+            if (err.code === 'failed-precondition') console.warn('Persistence włączona tylko w jednej zakładce.');
+            else if (err.code === 'unimplemented') console.warn('Brak obsługi IndexedDB.');
         });
 
         function App() {
@@ -202,7 +187,6 @@
                 window.addEventListener('online', handleOnline);
                 window.addEventListener('offline', handleOffline);
 
-                // Przechwycenie zdarzenia instalacji PWA
                 const handleInstallPrompt = (e) => {
                     e.preventDefault();
                     setInstallPrompt(e);
@@ -220,9 +204,7 @@
                 if (installPrompt) {
                     installPrompt.prompt();
                     installPrompt.userChoice.then((choiceResult) => {
-                        if (choiceResult.outcome === 'accepted') {
-                            setInstallPrompt(null);
-                        }
+                        if (choiceResult.outcome === 'accepted') setInstallPrompt(null);
                     });
                 }
             };
@@ -393,11 +375,11 @@
 
             const handleInitiateReset = async () => {
                 if (!isOnline) {
-                    setLoginError('Brak połączenia z siecią! Reset hasła wymaga dostępu do internetu.');
+                    setLoginError('Brak połączenia z siecią!');
                     return;
                 }
                 if (!discordWebhook) {
-                    setLoginError('Brak skonfigurowanego Webhooka Discorda! Skontaktuj się z administratorem.');
+                    setLoginError('Brak skonfigurowanego Webhooka Discorda!');
                     return;
                 }
 
@@ -766,9 +748,7 @@
                 document.body.removeChild(link);
             };
 
-            // -------------------------------------------------------------
-            // EKRAN WYBORU PROFILU I LOGOWANIA HASEŁ
-            // -------------------------------------------------------------
+            // LOGOWANIE
             if (!currentUser) {
                 const userData = selectedUserForLogin ? dbUsers[selectedUserForLogin] : null;
                 const isFirstLogin = userData && userData.password === '569s31';
@@ -796,36 +776,15 @@
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Kod startowy</label>
-                                                <input 
-                                                    type="password" 
-                                                    required 
-                                                    value={passwordInput} 
-                                                    onChange={(e) => setPasswordInput(e.target.value)} 
-                                                    placeholder="Hasło startowe" 
-                                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
-                                                />
+                                                <input type="password" required value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="Hasło startowe" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Nowe hasło główne</label>
-                                                <input 
-                                                    type="password" 
-                                                    required 
-                                                    value={newPasswordInput} 
-                                                    onChange={(e) => setNewPasswordInput(e.target.value)} 
-                                                    placeholder="Wpisz nowe hasło..." 
-                                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
-                                                />
+                                                <input type="password" required value={newPasswordInput} onChange={(e) => setNewPasswordInput(e.target.value)} placeholder="Wpisz nowe hasło..." className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Potwierdź nowe hasło</label>
-                                                <input 
-                                                    type="password" 
-                                                    required 
-                                                    value={confirmPasswordInput} 
-                                                    onChange={(e) => setConfirmPasswordInput(e.target.value)} 
-                                                    placeholder="Powtórz nowe hasło..." 
-                                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
-                                                />
+                                                <input type="password" required value={confirmPasswordInput} onChange={(e) => setConfirmPasswordInput(e.target.value)} placeholder="Powtórz nowe hasło..." className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" />
                                             </div>
                                         </>
                                     ) : isResetMode ? (
@@ -836,61 +795,26 @@
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Jednorazowy Kod PIN z Discorda</label>
-                                                <input 
-                                                    type="text" 
-                                                    required 
-                                                    autoFocus
-                                                    value={pinInput} 
-                                                    onChange={(e) => setPinInput(e.target.value)} 
-                                                    placeholder="Wpisz 6-cyfrowy PIN..." 
-                                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-mono text-white text-center tracking-widest focus:outline-none focus:border-indigo-500" 
-                                                />
+                                                <input type="text" required autoFocus value={pinInput} onChange={(e) => setPinInput(e.target.value)} placeholder="Wpisz 6-cyfrowy PIN..." className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-mono text-white text-center tracking-widest focus:outline-none focus:border-indigo-500" />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Nowe hasło główne</label>
-                                                <input 
-                                                    type="password" 
-                                                    required 
-                                                    value={newPasswordInput} 
-                                                    onChange={(e) => setNewPasswordInput(e.target.value)} 
-                                                    placeholder="Wpisz nowe hasło..." 
-                                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
-                                                />
+                                                <input type="password" required value={newPasswordInput} onChange={(e) => setNewPasswordInput(e.target.value)} placeholder="Wpisz nowe hasło..." className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Potwierdź nowe hasło</label>
-                                                <input 
-                                                    type="password" 
-                                                    required 
-                                                    value={confirmPasswordInput} 
-                                                    onChange={(e) => setConfirmPasswordInput(e.target.value)} 
-                                                    placeholder="Powtórz nowe hasło..." 
-                                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
-                                                />
+                                                <input type="password" required value={confirmPasswordInput} onChange={(e) => setConfirmPasswordInput(e.target.value)} placeholder="Powtórz nowe hasło..." className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" />
                                             </div>
                                         </>
                                     ) : (
                                         <div>
                                             <div className="flex justify-between items-center mb-1">
                                                 <label className="block text-xs font-semibold text-slate-400 uppercase">Hasło główne</label>
-                                                <button 
-                                                    type="button" 
-                                                    disabled={isSendingPin}
-                                                    onClick={handleInitiateReset} 
-                                                    className="text-[11px] text-indigo-400 hover:underline flex items-center space-x-1 disabled:opacity-50"
-                                                >
+                                                <button type="button" disabled={isSendingPin} onClick={handleInitiateReset} className="text-[11px] text-indigo-400 hover:underline flex items-center space-x-1 disabled:opacity-50">
                                                     <span>{isSendingPin ? 'Wysyłanie PIN...' : 'Wyślij PIN na Discord (Reset)'}</span>
                                                 </button>
                                             </div>
-                                            <input 
-                                                type="password" 
-                                                autoFocus 
-                                                required 
-                                                value={passwordInput} 
-                                                onChange={(e) => setPasswordInput(e.target.value)} 
-                                                placeholder="Wpisz swoje hasło..." 
-                                                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
-                                            />
+                                            <input type="password" autoFocus required value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="Wpisz swoje hasło..." className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" />
                                         </div>
                                     )}
 
@@ -911,15 +835,7 @@
                                     </div>
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Imię / Stopień i Nazwisko (np. Naczelnik Jan)</label>
-                                        <input 
-                                            type="text" 
-                                            autoFocus 
-                                            required 
-                                            value={newProfileName} 
-                                            onChange={(e) => setNewProfileName(e.target.value)} 
-                                            placeholder="Wpisz nazwę profilu..." 
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" 
-                                        />
+                                        <input type="text" autoFocus required value={newProfileName} onChange={(e) => setNewProfileName(e.target.value)} placeholder="Wpisz nazwę profilu..." className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" />
                                     </div>
                                     <div className="text-[11px] text-slate-400">
                                         ℹ️ Nowy profil otrzyma domyślnie brak uprawnień do modyfikacji. Administrator (Michał) może mu przypisać osobno dodawanie, edycję lub usuwanie.
@@ -1006,7 +922,7 @@
 
                                 <div 
                                     className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition ${isOnline ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400' : 'bg-red-950/40 border-red-500/30 text-red-300'}`}
-                                    title={isOnline ? 'Połączono z siecią (Chmura aktywna)' : 'Tryb Offline - dane zapisane lokalnie, zsynchronizują się po powrocie sieci'}
+                                    title={isOnline ? 'Połączono z siecią (Chmura aktywna)' : 'Tryb Offline - dane zapisane lokalnie'}
                                 >
                                     <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`}></span>
                                     <span className="hidden sm:inline">{isOnline ? 'Online' : 'Offline'}</span>
@@ -1043,7 +959,7 @@
                             <div className="text-center py-20 text-slate-400">Ładowanie danych...</div>
                         ) : (
                             <>
-                                {/* 1. Kafelki Statystyk */}
+                                {/* 1. KAFELKI STATYSTYK */}
                                 <div className="grid grid-cols-2 md:grid-cols-6 gap-3 no-print">
                                     <div onClick={() => setActiveTab('All')} className={`cursor-pointer border rounded-xl p-3.5 transition ${activeTab === 'All' ? 'bg-slate-800/90 border-slate-600' : 'bg-slate-800/60 border-slate-700/60 hover:border-slate-600'}`}>
                                         <div className="text-xs font-medium text-slate-400 mb-1">Cały Sprzęt</div>
@@ -1074,7 +990,7 @@
                                     </div>
                                 </div>
 
-                                {/* 2. Baner alertu Discord */}
+                                {/* 2. BANER ALERTU DISCORD */}
                                 {stats.expiringSoon > 0 && (
                                     <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 no-print">
                                         <div className="flex items-center space-x-3">
@@ -1098,7 +1014,36 @@
                                     </div>
                                 )}
 
-                                {/* 3. Pasek Zakładek (Kategorii) - POD DISCORDEM */}
+                                {/* 3. PRZYCISKI AKCJI (DODAJ / EKSPORT / DRUKUJ) */}
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+                                    <div className="flex items-center space-x-2">
+                                        {userPermissions.add && (
+                                            <button onClick={openNewModal} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition flex items-center space-x-2 shadow-lg shadow-red-600/30">
+                                                <i data-lucide="plus" className="w-4 h-4"></i><span>Dodaj sprzęt</span>
+                                            </button>
+                                        )}
+                                        <button onClick={exportToCSV} className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm transition" title="Eksport CSV"><i data-lucide="download" className="w-4 h-4"></i></button>
+                                        <button onClick={() => window.print()} className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm transition" title="Drukuj"><i data-lucide="printer" className="w-4 h-4"></i></button>
+                                    </div>
+                                </div>
+
+                                {/* 4. WYSZUKIWARKA I FILTR STANU */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 no-print">
+                                    <div className="relative md:col-span-2">
+                                        <i data-lucide="search" className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500"></i>
+                                        <input type="text" placeholder="Szukaj po nazwie, numerze inwentarzowym lub lokalizacji..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500" />
+                                    </div>
+                                    <div>
+                                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500">
+                                            <option value="All">Wszystkie stany techniczne</option>
+                                            <option value="Sprawny">Sprawny</option>
+                                            <option value="W naprawie">W naprawie</option>
+                                            <option value="Wycofany">Wycofany</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* 5. PASEK ZAKŁADEK (KATEGORII) - TERAZ DOKŁADNIE POD WYSZUKIWARKĄ */}
                                 <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start flex-wrap gap-1 no-print">
                                     <button onClick={() => setActiveTab('All')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'All' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>Wszystko</button>
                                     <button onClick={() => setActiveTab('Wodne')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Wodne' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
@@ -1115,6 +1060,7 @@
                                     </button>
                                 </div>
 
+                                {/* 6. TABELA ZE SPRZĘTEM LUB LOGI */}
                                 {activeTab === 'Logs' ? (
                                     <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
                                         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
@@ -1163,118 +1109,89 @@
                                         </div>
                                     </div>
                                 ) : (
-                                    <>
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
-                                            <div className="flex items-center space-x-2">
-                                                {userPermissions.add && (
-                                                    <button onClick={openNewModal} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold transition flex items-center space-x-2 shadow-lg shadow-red-600/30">
-                                                        <i data-lucide="plus" className="w-4 h-4"></i><span>Dodaj sprzęt</span>
-                                                    </button>
-                                                )}
-                                                <button onClick={exportToCSV} className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm transition" title="Eksport CSV"><i data-lucide="download" className="w-4 h-4"></i></button>
-                                                <button onClick={() => window.print()} className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm transition" title="Drukuj"><i data-lucide="printer" className="w-4 h-4"></i></button>
-                                            </div>
+                                    <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                                        <div className="print-only p-4 border-b border-gray-400 mb-2">
+                                            <h1 className="text-xl font-bold text-black">PROTOKÓŁ KONTROLI I EWIDENCJI SPRZĘTU RATOWNICZEGO</h1>
+                                            <p className="text-xs text-gray-700">Jednostka: OSP Racibórz-Markowice • Dział: {activeTab === 'All' ? 'Wszystkie Działy' : activeTab} • Data: {new Date().toLocaleDateString('pl-PL')}</p>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 no-print">
-                                            <div className="relative md:col-span-2">
-                                                <i data-lucide="search" className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500"></i>
-                                                <input type="text" placeholder="Szukaj po nazwie, numerze inwentarzowym lub lokalizacji..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500" />
-                                            </div>
-                                            <div>
-                                                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500">
-                                                    <option value="All">Wszystkie stany techniczne</option>
-                                                    <option value="Sprawny">Sprawny</option>
-                                                    <option value="W naprawie">W naprawie</option>
-                                                    <option value="Wycofany">Wycofany</option>
-                                                </select>
-                                            </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-slate-950/60 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                                        <th className="p-4">Sprzęt & Nr Inwentarzowy</th>
+                                                        <th className="p-4">Dział</th>
+                                                        <th className="p-4">Lokalizacja</th>
+                                                        <th className="p-4">Stan</th>
+                                                        <th className="p-4">Ważność / Przegląd</th>
+                                                        <th className="p-4">Opiekun</th>
+                                                        <th className="p-4 text-center">Ilość</th>
+                                                        {(userPermissions.edit || userPermissions.delete) && <th className="p-4 text-right no-print">Akcje</th>}
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800/60 text-sm">
+                                                    {filteredEquipment.length === 0 ? (
+                                                        <tr><td colSpan={(userPermissions.edit || userPermissions.delete) ? 8 : 7} className="p-8 text-center text-slate-500">Brak sprzętu spełniającego wybrane kryteria.</td></tr>
+                                                    ) : (
+                                                        filteredEquipment.map(item => {
+                                                            const daysToExp = getDaysToExpiry(item.expiryDate);
+                                                            let expBadgeClass = "bg-slate-800 text-slate-300";
+                                                            if (daysToExp !== null) {
+                                                                if (daysToExp <= 0) expBadgeClass = "bg-red-500/20 text-red-400 border border-red-500/30";
+                                                                else if (daysToExp <= 30) expBadgeClass = "bg-amber-500/20 text-amber-300 border border-amber-500/30";
+                                                                else expBadgeClass = "bg-emerald-500/10 text-emerald-400";
+                                                            }
+
+                                                            return (
+                                                                <tr key={item.idDoc} className="hover:bg-slate-800/40 transition">
+                                                                    <td className="p-4">
+                                                                        <div className="font-semibold text-white">{item.name}</div>
+                                                                        <div className="text-xs text-slate-400 font-mono mt-0.5">{item.inventoryNo}</div>
+                                                                        {item.notes && <div className="text-xs text-slate-500 italic mt-1">{item.notes}</div>}
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${item.category === 'Wodne' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : item.category === 'Medyczne' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'}`}>
+                                                                            {item.category === 'Wodne' ? '🌊 Wodne' : item.category === 'Medyczne' ? '🚑 Medyczne' : '🧗 Wysokościowe'}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="p-4 text-slate-300">
+                                                                        <div className="flex items-center space-x-1.5"><i data-lucide="map-pin" className="w-3.5 h-3.5 text-slate-500"></i><span>{item.location}</span></div>
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${item.status === 'Sprawny' ? 'bg-emerald-500/10 text-emerald-400' : item.status === 'W naprawie' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'}`}>{item.status}</span>
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-xs font-mono">{item.expiryDate || 'Brak daty'}</span>
+                                                                            {daysToExp !== null && (
+                                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded mt-1 self-start font-medium ${expBadgeClass}`}>
+                                                                                    {daysToExp < 0 ? `Wygasło ${Math.abs(daysToExp)} dni temu` : `Pozostało ${daysToExp} dni`}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-4 text-xs text-slate-400"><span className="font-medium text-slate-300">{item.lastInspector || '-'}</span></td>
+                                                                    <td className="p-4 text-center font-semibold text-slate-200">{item.quantity}</td>
+                                                                    {(userPermissions.edit || userPermissions.delete) && (
+                                                                        <td className="p-4 text-right space-x-2 no-print">
+                                                                            {userPermissions.edit && <button onClick={() => handleEdit(item)} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Edytuj"><i data-lucide="edit-3" className="w-4 h-4"></i></button>}
+                                                                            {userPermissions.delete && <button onClick={() => handleDelete(item)} className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition" title="Usuń"><i data-lucide="trash-2" className="w-4 h-4"></i></button>}
+                                                                        </td>
+                                                                    )}
+                                                                </tr>
+                                                            );
+                                                        })
+                                                    )}
+                                                </tbody>
+                                            </table>
                                         </div>
-
-                                        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                                            <div className="print-only p-4 border-b border-gray-400 mb-2">
-                                                <h1 className="text-xl font-bold text-black">PROTOKÓŁ KONTROLI I EWIDENCJI SPRZĘTU RATOWNICZEGO</h1>
-                                                <p className="text-xs text-gray-700">Jednostka: OSP Racibórz-Markowice • Dział: {activeTab === 'All' ? 'Wszystkie Działy' : activeTab} • Data: {new Date().toLocaleDateString('pl-PL')}</p>
-                                            </div>
-
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full text-left border-collapse">
-                                                    <thead>
-                                                        <tr className="bg-slate-950/60 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                                            <th className="p-4">Sprzęt & Nr Inwentarzowy</th>
-                                                            <th className="p-4">Dział</th>
-                                                            <th className="p-4">Lokalizacja</th>
-                                                            <th className="p-4">Stan</th>
-                                                            <th className="p-4">Ważność / Przegląd</th>
-                                                            <th className="p-4">Opiekun</th>
-                                                            <th className="p-4 text-center">Ilość</th>
-                                                            {(userPermissions.edit || userPermissions.delete) && <th className="p-4 text-right no-print">Akcje</th>}
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-800/60 text-sm">
-                                                        {filteredEquipment.length === 0 ? (
-                                                            <tr><td colSpan={(userPermissions.edit || userPermissions.delete) ? 8 : 7} className="p-8 text-center text-slate-500">Brak sprzętu spełniającego wybrane kryteria.</td></tr>
-                                                        ) : (
-                                                            filteredEquipment.map(item => {
-                                                                const daysToExp = getDaysToExpiry(item.expiryDate);
-                                                                let expBadgeClass = "bg-slate-800 text-slate-300";
-                                                                if (daysToExp !== null) {
-                                                                    if (daysToExp <= 0) expBadgeClass = "bg-red-500/20 text-red-400 border border-red-500/30";
-                                                                    else if (daysToExp <= 30) expBadgeClass = "bg-amber-500/20 text-amber-300 border border-amber-500/30";
-                                                                    else expBadgeClass = "bg-emerald-500/10 text-emerald-400";
-                                                                }
-
-                                                                return (
-                                                                    <tr key={item.idDoc} className="hover:bg-slate-800/40 transition">
-                                                                        <td className="p-4">
-                                                                            <div className="font-semibold text-white">{item.name}</div>
-                                                                            <div className="text-xs text-slate-400 font-mono mt-0.5">{item.inventoryNo}</div>
-                                                                            {item.notes && <div className="text-xs text-slate-500 italic mt-1">{item.notes}</div>}
-                                                                        </td>
-                                                                        <td className="p-4">
-                                                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${item.category === 'Wodne' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : item.category === 'Medyczne' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'}`}>
-                                                                                {item.category === 'Wodne' ? '🌊 Wodne' : item.category === 'Medyczne' ? '🚑 Medyczne' : '🧗 Wysokościowe'}
-                                                                            </span>
-                                                                        </td>
-                                                                        <td className="p-4 text-slate-300">
-                                                                            <div className="flex items-center space-x-1.5"><i data-lucide="map-pin" className="w-3.5 h-3.5 text-slate-500"></i><span>{item.location}</span></div>
-                                                                        </td>
-                                                                        <td className="p-4">
-                                                                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${item.status === 'Sprawny' ? 'bg-emerald-500/10 text-emerald-400' : item.status === 'W naprawie' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'}`}>{item.status}</span>
-                                                                        </td>
-                                                                        <td className="p-4">
-                                                                            <div className="flex flex-col">
-                                                                                <span className="text-xs font-mono">{item.expiryDate || 'Brak daty'}</span>
-                                                                                {daysToExp !== null && (
-                                                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded mt-1 self-start font-medium ${expBadgeClass}`}>
-                                                                                        {daysToExp < 0 ? `Wygasło ${Math.abs(daysToExp)} dni temu` : `Pozostało ${daysToExp} dni`}
-                                                                                    </span>
-                                                                                )}
-                                                                            </div>
-                                                                        </td>
-                                                                        <td className="p-4 text-xs text-slate-400"><span className="font-medium text-slate-300">{item.lastInspector || '-'}</span></td>
-                                                                        <td className="p-4 text-center font-semibold text-slate-200">{item.quantity}</td>
-                                                                        {(userPermissions.edit || userPermissions.delete) && (
-                                                                            <td className="p-4 text-right space-x-2 no-print">
-                                                                                {userPermissions.edit && <button onClick={() => handleEdit(item)} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition" title="Edytuj"><i data-lucide="edit-3" className="w-4 h-4"></i></button>}
-                                                                                {userPermissions.delete && <button onClick={() => handleDelete(item)} className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition" title="Usuń"><i data-lucide="trash-2" className="w-4 h-4"></i></button>}
-                                                                            </td>
-                                                                        )}
-                                                                    </tr>
-                                                                );
-                                                            })
-                                                        )}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </>
+                                    </div>
                                 )}
                             </>
                         )}
                     </main>
 
-                    {/* MODAL SZCZEGÓŁOWYCH UPRAWNIEN (DLA MICHAŁA) */}
+                    {/* MODAL UPRAWNIEN */}
                     {isPermissionsModalOpen && currentUser === 'Michał' && (
                         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
@@ -1342,6 +1259,7 @@
                         </div>
                     )}
 
+                    {/* MODAL FORMULARZA */}
                     {isModalOpen && (userPermissions.add || userPermissions.edit) && (
                         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
@@ -1405,6 +1323,7 @@
                         </div>
                     )}
 
+                    {/* MODAL DISCORD */}
                     {isDiscordModalOpen && (
                         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
