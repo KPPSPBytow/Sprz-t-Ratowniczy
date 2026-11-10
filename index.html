@@ -31,6 +31,9 @@
 
     <style>
         @media print {
+            @page { 
+                margin: 1cm; /* Ukrywa domyślne nagłówki i stopki (w tym adres URL) przeglądarki */
+            }
             body { background: white !important; color: black !important; font-size: 11pt; }
             .no-print { display: none !important; }
             .print-only { display: block !important; }
@@ -1043,7 +1046,7 @@
                                     </div>
                                 </div>
 
-                                {/* 5. PASEK ZAKŁADEK (KATEGORII) - TERAZ DOKŁADNIE POD WYSZUKIWARKĄ */}
+                                {/* 5. PASEK ZAKŁADEK (KATEGORII) - POD WYSZUKIWARKĄ */}
                                 <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start flex-wrap gap-1 no-print">
                                     <button onClick={() => setActiveTab('All')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${activeTab === 'All' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>Wszystko</button>
                                     <button onClick={() => setActiveTab('Wodne')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${activeTab === 'Wodne' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
