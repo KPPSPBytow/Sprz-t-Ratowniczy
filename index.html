@@ -31,7 +31,6 @@
 
     <style>
         @media print {
-            /* Wymuszenie czarno-białego wydruku oraz usunięcie marginesów systemowych generujących linki */
             @page { 
                 size: A4 portrait;
                 margin: 8mm; 
@@ -54,14 +53,12 @@
             .no-print { display: none !important; }
             .print-only { display: block !important; }
             
-            /* Profesjonalny nagłówek dokumentu OSP */
             .print-header {
                 border-bottom: 2px solid black !important;
                 padding-bottom: 10px !important;
                 margin-bottom: 15px !important;
             }
 
-            /* Czyszczenie tła i zamiana na czarno-białą tabelę */
             .bg-slate-900, .bg-slate-950, .bg-slate-800, div {
                 background-color: transparent !important;
                 color: black !important;
@@ -89,7 +86,6 @@
                 font-size: 8pt !important;
             }
 
-            /* Wyczyszczenie kolorowych badge'y na czarno-białe obramowania */
             span, div {
                 background: transparent !important;
                 color: black !important;
@@ -103,7 +99,6 @@
                 font-weight: bold !important;
             }
 
-            /* Podpisy na końcu protokołu */
             .print-signatures {
                 margin-top: 40px !important;
                 display: flex !important;
@@ -1167,7 +1162,7 @@
                                     </div>
                                 ) : (
                                     <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                                        <!-- OFICJALNY NAGŁÓWEK PROTOKOŁU NA WYDRUK -->
+                                        {/* OFICJALNY NAGŁÓWEK PROTOKOŁU NA WYDRUK */}
                                         <div className="print-only print-header">
                                             <div className="flex justify-between items-start">
                                                 <div>
@@ -1247,7 +1242,7 @@
                                             </table>
                                         </div>
 
-                                        <!-- POLA DLA PODPISÓW NA WYDRUKU PROTOKOŁU -->
+                                        {/* POLA DLA PODPISÓW NA WYDRUKU PROTOKOŁU */}
                                         <div className="print-only print-signatures">
                                             <div className="signature-box">
                                                 Podpis Sporządzającego
