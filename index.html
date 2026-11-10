@@ -51,7 +51,7 @@
             .no-print { display: none !important; }
             .print-only { display: block !important; }
             
-            .print-header {
+            .print-er {
                 border-bottom: 2px solid black !important;
                 padding-bottom: 12px !important;
                 margin-bottom: 20px !important;
@@ -114,6 +114,15 @@
         }
         .print-only { display: none; }
     </style>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('ServiceWorker zarejestrowany sukcesem:', reg.scope))
+                .catch(err => console.log('Błąd rejestracji ServiceWorker:', err));
+            });
+        }
+    </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
